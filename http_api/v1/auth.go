@@ -25,39 +25,39 @@ func init() {
 
 // FIXME
 func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
-	// var input app.LoginParams
+	var input app.LoginParams
 
-	// defer r.Body.Close()
-	// body, err := ioutil.ReadAll(r.Body)
-	// if err != nil {
-	// 	return err
-	// }
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
 
-	// if err := json.Unmarshal(body, &input); err != nil {
-	// 	return &customError.UserError{
-	// 		Code:           customError.InvalidJSONString,
-	// 		Message:        "Invalid JSON string",
-	// 		HTTPStatusCode: http.StatusBadRequest,
-	// 	}
-	// }
+	if err := json.Unmarshal(body, &input); err != nil {
+		return &customError.UserError{
+			Code:           customError.InvalidJSONString,
+			Message:        "Invalid JSON string",
+			HTTPStatusCode: http.StatusBadRequest,
+		}
+	}
 
-	// resData, err := ctx.Login(input)
-	// if err != nil {
-	// 	return err
-	// }
+	resData, err := ctx.Login(input)
+	if err != nil {
+		return err
+	}
 
-	// data, err := json.Marshal(&response.Response{
-	// 	Code:    0,
-	// 	Message: "",
-	// 	Data:    resData,
-	// })
-	// if err != nil {
-	// 	return err
-	// }
+	data, err := json.Marshal(&response.Response{
+		Code:    0,
+		Message: "",
+		Data:    resData,
+	})
+	if err != nil {
+		return err
+	}
 
-	// w.WriteHeader(http.StatusOK)
-	// _, err = w.Write(data)
-	// return err
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(data)
+	return err
 
 	return nil
 }
