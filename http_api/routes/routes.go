@@ -17,6 +17,7 @@ type Route struct {
 // Routes is a collection of multiple http Routes
 type Routes []Route
 
+// RouteDefinition is something
 type RouteDefinition struct {
 	Routes Routes
 	Prefix string
