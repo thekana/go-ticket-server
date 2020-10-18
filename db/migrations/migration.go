@@ -5,9 +5,8 @@ import (
 )
 
 type Migration struct {
-	Number uint `gorm:"primary_key"`
-	Name   string
-
+	Number   uint `gorm:"primary_key"`
+	Name     string
 	Forwards func(db *gorm.DB) error `gorm:"-"`
 }
 
