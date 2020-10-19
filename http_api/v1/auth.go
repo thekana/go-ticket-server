@@ -2,6 +2,7 @@ package v1
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"ticket-reservation/app"
@@ -94,9 +95,12 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 
 	resData, err := ctx.Login(input)
 	if err != nil {
-		return err
+		return &customError.UserError{
+			Code:           customError.UserNotFound,
+			Message:        fmt.Sprint(err),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
-
 	data, err := json.Marshal(&response.Response{
 		Code:    0,
 		Message: "",

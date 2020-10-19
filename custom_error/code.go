@@ -10,6 +10,6 @@ const (
 	InvalidAuthToken     uint64 = errorCodeBase + 5
 	AuthTokenExpired     uint64 = errorCodeBase + 6
 	InactiveAccount      uint64 = errorCodeBase + 7
-
-	DuplicateUsername uint64 = errorCodeBase + 101
+	UserNotFound         uint64 = errorCodeBase + 8
+	DuplicateUsername    uint64 = errorCodeBase + 101
 )

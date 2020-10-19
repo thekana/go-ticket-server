@@ -91,6 +91,9 @@ func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, e
 		userWithRole.ID = id
 	}
 	userWithRole.Username = name
+	if len(userWithRole.RoleList) == 0 {
+		return nil, errors.New("User Not Found")
+	}
 	return userWithRole, nil
 }
 
