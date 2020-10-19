@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 	"ticket-reservation/app"
 	customError "ticket-reservation/custom_error"
+	"ticket-reservation/db/model"
 	"ticket-reservation/http_api/response"
 	"ticket-reservation/http_api/routes"
 )
@@ -20,7 +22,7 @@ var AuthRoutes = routes.Routes{
 		HandlerFunc: Login,
 	},
 	routes.Route{
-		Name:        "Register",
+		Name:        "Customer Register",
 		Path:        "/register",
 		Method:      "POST",
 		HandlerFunc: Register,
@@ -117,6 +119,12 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 
 func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.RegisterParams
+	//roleType := URL.Query().Get("type")
+	//roleType = strings.ToLower(roleType)
+	var role model.Role = model.Customer
+	if roleType := r.URL.Query().Get("type"); strings.ToLower(roleType) == "organizer" {
+		role = model.Organizer
+	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -131,7 +139,7 @@ func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 		}
 	}
 
-	resData, err := ctx.Register(input)
+	resData, err := ctx.Register(input, role)
 	if err != nil {
 		return &customError.UserError{
 			Code:           customError.DuplicateUsername,

@@ -15,6 +15,8 @@ func init() {
 					id SERIAL PRIMARY KEY NOT NULL,
 					role VARCHAR(10) UNIQUE NOT NULL
 				);
+				INSERT INTO roles(role) values
+					('admin'),('organizer'),('customer');
 			`
 			err := db.Exec(sql).Error
 			return errors.Wrap(err, "unable to create roles table")

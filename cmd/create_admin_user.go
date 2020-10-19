@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"ticket-reservation/db/model"
 
 	"ticket-reservation/db"
 )
@@ -39,7 +40,7 @@ var createAdminUserCmd = &cobra.Command{
 			return err
 		}
 
-		_, err = db.AssignRoleToUser(userID, "admin")
+		_, err = db.AssignRoleToUser(userID, model.Admin)
 		if err != nil {
 			return err
 		}

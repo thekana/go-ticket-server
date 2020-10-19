@@ -1,5 +1,7 @@
 package app
 
+import "ticket-reservation/db/model"
+
 // RegisterParams is
 type RegisterParams struct {
 	Username string `json:"username" validate:"required"`
@@ -73,7 +75,7 @@ func (ctx *Context) Login(params LoginParams) (*LoginResult, error) {
 }
 
 // Register is a backend function
-func (ctx *Context) Register(params RegisterParams) (*RegisterResult, error) {
+func (ctx *Context) Register(params RegisterParams, role model.Role) (*RegisterResult, error) {
 	logger := ctx.getLogger()
 
 	if err := validateInput(params); err != nil {
@@ -84,7 +86,7 @@ func (ctx *Context) Register(params RegisterParams) (*RegisterResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = ctx.DB.AssignRoleToUser(userId, "customer")
+	_, err = ctx.DB.AssignRoleToUser(userId, role)
 	if err != nil {
 		return nil, err
 	}

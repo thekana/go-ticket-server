@@ -2,15 +2,14 @@ package db
 
 import (
 	"context"
-	"ticket-reservation/db/model"
-
 	"github.com/pkg/errors"
+	"ticket-reservation/db/model"
 )
 
 type DBUserInterface interface {
 	CreateUser(username string) (int64, error)
 	GetUserById(id int64) (*model.UserWithRoleList, error)
-	AssignRoleToUser(id int64, role string) (int64, error)
+	AssignRoleToUser(id int64, role model.Role) (int64, error)
 	GetUserByName(name string) (*model.UserWithRoleList, error)
 
 	// TODO: [Phase 1] decide what to store in memory(pseudo-db) and to store in real db
@@ -100,13 +99,12 @@ func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, e
 // Requirement doesnt say anything about assigning roles to new user created via API
 // Assumption: new users to always have customer role
 
-func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role string) (int64, error) {
-	validRoles := map[string]int{"admin": 1, "organizer": 2, "customer": 3}
+func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role model.Role) (int64, error) {
 	var rowId int64
 	err := pgdb.DB.QueryRow(context.Background(), `
 		INSERT INTO user_roles(user_id,role_id) values ($1,$2)
 		RETURNING id
-		`, id, validRoles[role]).Scan(&rowId)
+		`, id, role).Scan(&rowId)
 	if err != nil {
 		return 0, errors.Wrap(err, "Unable to create user")
 	}
