@@ -2,8 +2,9 @@ package db
 
 import (
 	"context"
-	"github.com/pkg/errors"
 	model "ticket-reservation/db/model"
+
+	"github.com/pkg/errors"
 )
 
 type DBUserInterface interface {
