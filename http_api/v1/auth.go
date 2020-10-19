@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"ticket-reservation/app"
 	customError "ticket-reservation/custom_error"
+	"ticket-reservation/http_api/response"
 	"ticket-reservation/http_api/routes"
 )
 
@@ -60,7 +61,11 @@ func GetLoggedInInfo(ctx *app.Context, w http.ResponseWriter, r *http.Request) e
 		return err
 	}
 
-	data, err := json.Marshal(resData)
+	data, err := json.Marshal(&response.Response{
+		Code:    0,
+		Message: "",
+		Data:    resData,
+	})
 	if err != nil {
 		return err
 	}
@@ -92,7 +97,11 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 		return err
 	}
 
-	data, err := json.Marshal(resData)
+	data, err := json.Marshal(&response.Response{
+		Code:    0,
+		Message: "",
+		Data:    resData,
+	})
 	if err != nil {
 		return err
 	}
@@ -126,7 +135,11 @@ func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}
-	data, err := json.Marshal(resData)
+	data, err := json.Marshal(&response.Response{
+		Code:    0,
+		Message: "",
+		Data:    resData,
+	})
 	if err != nil {
 		return err
 	}

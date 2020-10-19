@@ -34,16 +34,16 @@ func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error
 	return false, nil, errors.New("Invalid access token")
 }
 
-func (ctx *Context) createToken(userID int64) (string, error) {
-	//ttl := 1 * time.Hour
+func (ctx *Context) createToken(username string, userID int64, roles []string) (string, error) {
+	ttl := 1 * time.Hour
 
 	var claims jwt.MapClaims
 	claims = jwt.MapClaims{
-		"iat": time.Now().Unix(),
-		"sub": "back_office",
-		"aud": userID,
-		"exp": time.Now().Add(time.Second * 10).Unix(),
-		"uid": userID,
+		"iat":  time.Now().Unix(),
+		"exp":  time.Now().Add(ttl).Unix(),
+		"uid":  userID,
+		"name": username,
+		"rol":  roles,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)

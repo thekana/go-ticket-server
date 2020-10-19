@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	model "ticket-reservation/db/model"
+	"ticket-reservation/db/model"
 
 	"github.com/pkg/errors"
 )
@@ -11,6 +11,7 @@ type DBUserInterface interface {
 	CreateUser(username string) (int64, error)
 	GetUserById(id int64) (*model.UserWithRoleList, error)
 	AssignRoleToUser(id int64, role string) (int64, error)
+	GetUserByName(name string) (*model.UserWithRoleList, error)
 
 	// TODO: [Phase 1] decide what to store in memory(pseudo-db) and to store in real db
 
@@ -42,10 +43,9 @@ func (pgdb *PostgresqlDB) CreateUser(username string) (int64, error) {
 }
 
 func (pgdb *PostgresqlDB) GetUserById(id int64) (*model.UserWithRoleList, error) {
-	// TODO: Just return user with role list
 	userWithRole := &model.UserWithRoleList{}
 	rows, err := pgdb.DB.Query(context.Background(), `
-		select u.username, r.role from users u
+		select u.id as uid ,u.username, r.role from users u
 		inner join user_roles ur on ur.user_id = u.id
 		inner join roles r on r.id = ur.role_id
 		where u.id = $1
@@ -54,7 +54,43 @@ func (pgdb *PostgresqlDB) GetUserById(id int64) (*model.UserWithRoleList, error)
 	if err != nil {
 		return nil, err
 	}
-	// TODO: Loop rows and parse data properly check morchana/db/back_office
+	for rows.Next() {
+		var role string
+		var username string
+		err = rows.Scan(nil, &username, &role)
+		if err != nil {
+			return nil, err
+		}
+		userWithRole.RoleList = append(userWithRole.RoleList, role)
+		userWithRole.Username = username
+	}
+	userWithRole.ID = id
+	return userWithRole, nil
+}
+
+func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, error) {
+	userWithRole := &model.UserWithRoleList{}
+	rows, err := pgdb.DB.Query(context.Background(), `
+		select u.id as uid ,u.username, r.role from users u
+		inner join user_roles ur on ur.user_id = u.id
+		inner join roles r on r.id = ur.role_id
+		where u.username = $1
+		`, name)
+	defer rows.Close()
+	if err != nil {
+		return nil, err
+	}
+	for rows.Next() {
+		var role string
+		var id int64
+		err = rows.Scan(&id, nil, &role)
+		if err != nil {
+			return nil, err
+		}
+		userWithRole.RoleList = append(userWithRole.RoleList, role)
+		userWithRole.ID = id
+	}
+	userWithRole.Username = name
 	return userWithRole, nil
 }
 
@@ -62,7 +98,6 @@ func (pgdb *PostgresqlDB) GetUserById(id int64) (*model.UserWithRoleList, error)
 // Assumption: new users to always have customer role
 
 func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role string) (int64, error) {
-	// TODO: FIXME: Not sure what to return here
 	validRoles := map[string]int{"admin": 1, "organizer": 2, "customer": 3}
 	var rowId int64
 	err := pgdb.DB.QueryRow(context.Background(), `

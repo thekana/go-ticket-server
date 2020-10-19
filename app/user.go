@@ -1,9 +1,5 @@
 package app
 
-import (
-	"errors"
-)
-
 // RegisterParams is
 type RegisterParams struct {
 	Username string `json:"username" validate:"required"`
@@ -50,16 +46,10 @@ func (ctx *Context) GetLoggedInInfo(params GetLoggedInInfoParams) (*GetLoggedInI
 		return nil, err
 	}
 	return &GetLoggedInInfoResult{
-		UserID: 1,
+		UserID: 0,
 		Data:   claims,
 	}, nil
 }
-
-// FIXME: Temp solution
-var (
-	usernameMap map[string]int64 = make(map[string]int64)
-	userCount   int64            = 0
-)
 
 // Login is a backend function
 func (ctx *Context) Login(params LoginParams) (*LoginResult, error) {
@@ -70,16 +60,16 @@ func (ctx *Context) Login(params LoginParams) (*LoginResult, error) {
 		return nil, err
 	}
 
-	// TODO: query database instead check db/user.go createUser
-	id, ok := usernameMap[params.Username]
-	if !ok {
-		return nil, errors.New("User does not exist")
-	}
-	authToken, err := ctx.createToken(id)
+	record, err := ctx.DB.GetUserByName(params.Username)
+
 	if err != nil {
 		return nil, err
 	}
-	return &LoginResult{AuthToken: authToken, UserID: id}, nil
+	authToken, err := ctx.createToken(record.Username, record.ID, record.RoleList)
+	if err != nil {
+		return nil, err
+	}
+	return &LoginResult{AuthToken: authToken, UserID: record.ID}, nil
 }
 
 // Register is a backend function
@@ -90,15 +80,13 @@ func (ctx *Context) Register(params RegisterParams) (*RegisterResult, error) {
 		logger.Errorf("validateInput error : %s", err)
 		return nil, err
 	}
-
-	if _, ok := usernameMap[params.Username]; ok {
-		return nil, errors.New("Username exists")
+	userId, err := ctx.DB.CreateUser(params.Username)
+	if err != nil {
+		return nil, err
 	}
-	id := userCount
-	usernameMap[params.Username] = id
-	userCount++
-
-	// TODO: Change to update database check db/user.go createUser
-
-	return &RegisterResult{ID: id}, nil
+	_, err = ctx.DB.AssignRoleToUser(userId, "customer")
+	if err != nil {
+		return nil, err
+	}
+	return &RegisterResult{ID: userId}, nil
 }
