@@ -12,9 +12,9 @@ func init() {
 		Forwards: func(db *gorm.DB) error {
 			const sql = `
 			CREATE TABLE user_roles (
+ 				id SERIAL PRIMARY KEY,
 				user_id         BIGINT NOT NULL,
-				role_id         INTEGER NOT NULL,
-				PRIMARY KEY(user_id,role_id)
+				role_id         INTEGER NOT NULL
 			  )
 			  ;
 			  ALTER TABLE user_roles

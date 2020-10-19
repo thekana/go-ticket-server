@@ -13,7 +13,7 @@ func init() {
 			const sql = `
 				CREATE TABLE users(
 					id BIGSERIAL PRIMARY KEY NOT NULL,
-					username VARCHAR(255) UNIQUE NOT NULL,
+					username VARCHAR(255) UNIQUE NOT NULL
 				);
 			`
 			err := db.Exec(sql).Error

@@ -10,7 +10,7 @@ import (
 type DBUserInterface interface {
 	CreateUser(username string) (int64, error)
 	GetUserById(id int64) (*model.UserWithRoleList, error)
-	AssignRoleToUser(id int64) (int64, error) // FIXME: Not sure what to return here
+	AssignRoleToUser(id int64, role string) (int64, error)
 
 	// TODO: [Phase 1] decide what to store in memory(pseudo-db) and to store in real db
 
@@ -61,7 +61,16 @@ func (pgdb *PostgresqlDB) GetUserById(id int64) (*model.UserWithRoleList, error)
 // Requirement doesnt say anything about assigning roles to new user created via API
 // Assumption: new users to always have customer role
 
-func (pgdb *PostgresqlDB) AssignRoleToUser(id int64) (int64, error) {
+func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role string) (int64, error) {
 	// TODO: FIXME: Not sure what to return here
-	return 0, nil
+	validRoles := map[string]int{"admin": 1, "organizer": 2, "customer": 3}
+	var rowId int64
+	err := pgdb.DB.QueryRow(context.Background(), `
+		INSERT INTO user_roles(user_id,role_id) values ($1,$2)
+		RETURNING id
+		`, id, validRoles[role]).Scan(&rowId)
+	if err != nil {
+		return 0, errors.Wrap(err, "Unable to create user")
+	}
+	return rowId, nil
 }
