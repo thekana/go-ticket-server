@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"ticket-reservation/db/model"
 )
@@ -18,9 +20,9 @@ type DBUserInterface interface {
 	// org create event [once created store quota in memory]
 	// org view own event
 	// org edit own event [update the final quota in memory]
-	// org delete own event -> should also go and delete related reservations
+	// org delete own event -> should also go and delete related Reservations
 	// get Event detail by ID for booking purpose
-	// cust delete their reservations from table [in memory for now]
+	// cust delete their Reservations from table [in memory for now]
 	// org fetch total ticket reserved / remaining (assumed for each event) return a list of such thing
 }
 
@@ -38,6 +40,10 @@ func (pgdb *PostgresqlDB) CreateUser(username string) (int64, error) {
 	if err != nil {
 		return 0, errors.Wrap(err, "Unable to create user")
 	}
+	pgdb.MemoryDB.AddUserToSystem(NewUserData(username, int(userID)))
+	fmt.Printf("-----------------\n")
+	spew.Dump(pgdb.MemoryDB)
+	fmt.Printf("-----------------\n")
 	return userID, nil
 }
 

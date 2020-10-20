@@ -3,10 +3,13 @@ module ticket-reservation
 go 1.13
 
 require (
+	github.com/EagleChen/mapmutex v0.0.0-20200716162114-c133e97096b7
+	github.com/davecgh/go-spew v1.1.1
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-playground/locales v0.13.0
 	github.com/go-playground/universal-translator v0.17.0
 	github.com/go-playground/validator/v10 v10.3.0
+	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.4
 	github.com/jackc/pgx/v4 v4.7.1

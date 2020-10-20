@@ -3,6 +3,7 @@ package db
 import (
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -12,13 +13,16 @@ import (
 
 type DB interface {
 	DBUserInterface
-
+	DBEventInterface
+	//DBReservationInterface
 	Close() error
+	PrintSystem()
 }
 
 type PostgresqlDB struct {
-	logger log.Logger
-	DB     *pgxpool.Pool
+	logger   log.Logger
+	DB       *pgxpool.Pool
+	MemoryDB *System
 }
 
 func New(config *Config, logger log.Logger) (pgdb *PostgresqlDB, err error) {
@@ -26,6 +30,7 @@ func New(config *Config, logger log.Logger) (pgdb *PostgresqlDB, err error) {
 		logger: logger.WithFields(log.Fields{
 			"module": "db",
 		}),
+		MemoryDB: NewSystem(), // Init memoryDB
 	}
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -56,4 +61,8 @@ func New(config *Config, logger log.Logger) (pgdb *PostgresqlDB, err error) {
 func (pgdb *PostgresqlDB) Close() error {
 	pgdb.DB.Close()
 	return nil
+}
+
+func (pgdb *PostgresqlDB) PrintSystem() {
+	spew.Dump(pgdb.MemoryDB)
 }

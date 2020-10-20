@@ -248,6 +248,19 @@ func (api *API) handler(f func(*app.Context, http.ResponseWriter, *http.Request)
 				if err != nil {
 					logger.Errorf("HTTP handler user err: %+v", err)
 				}
+			} else if aerr, ok := err.(*customError.AuthorizationError); ok {
+				data, err := json.Marshal(&response.Response{
+					Code:    aerr.Code,
+					Message: aerr.Message,
+				})
+				if err == nil {
+					w.WriteHeader(http.StatusUnauthorized)
+					_, err = w.Write(data)
+				}
+
+				if err != nil {
+					logger.Errorf("%+v", err)
+				}
 			} else {
 				logger.Errorf("HTTP handler err: %+v", err)
 			}

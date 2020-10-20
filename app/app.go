@@ -19,13 +19,11 @@ import (
 )
 
 type App struct {
-	Logger log.Logger
-	Config *Config
-
+	Logger                log.Logger
+	Config                *Config
 	TokenSignerPrivateKey *rsa.PrivateKey
 	TokenSignerPublicKey  *rsa.PublicKey
-
-	DB db.DB
+	DB                    db.DB
 }
 
 var (

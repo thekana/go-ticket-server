@@ -12,3 +12,11 @@ type UserWithRoleList struct {
 	Username string   `json:"username"`
 	RoleList []string `json:"roleList"`
 }
+
+type EventDetail struct {
+	EventID     string `json:"event_id"`
+	OrganizerID int    `json:"org_id"`
+	EventName   string `json:"event_name"`
+	Quota       int    `json:quota_remaining`
+	SoldAmount  int    `json:sold`
+}

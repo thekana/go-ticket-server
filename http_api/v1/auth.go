@@ -33,6 +33,12 @@ var AuthRoutes = routes.Routes{
 		Method:      "POST",
 		HandlerFunc: GetLoggedInInfo,
 	},
+	routes.Route{
+		Name:        "Print",
+		Path:        "/print",
+		Method:      "GET",
+		HandlerFunc: PrintSystem,
+	},
 }
 
 func init() {
@@ -119,8 +125,6 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 
 func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.RegisterParams
-	//roleType := URL.Query().Get("type")
-	//roleType = strings.ToLower(roleType)
 	var role model.Role = model.Customer
 	if roleType := r.URL.Query().Get("type"); strings.ToLower(roleType) == "organizer" {
 		role = model.Organizer
@@ -159,4 +163,24 @@ func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	_, err = w.Write(data)
 	w.WriteHeader(http.StatusCreated)
 	return err
+}
+
+func PrintSystem(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
+	fmt.Print(`
+  ______  __      __   ______  ________  ________  __       __ 
+ /      \|  \    /  \ /      \|        \|        \|  \     /  \
+|  $$$$$$\\$$\  /  $$|  $$$$$$\\$$$$$$$$| $$$$$$$$| $$\   /  $$
+| $$___\$$ \$$\/  $$ | $$___\$$  | $$   | $$__    | $$$\ /  $$$
+ \$$    \   \$$  $$   \$$    \   | $$   | $$  \   | $$$$\  $$$$
+ _\$$$$$$\   \$$$$    _\$$$$$$\  | $$   | $$$$$   | $$\$$ $$ $$
+|  \__| $$   | $$    |  \__| $$  | $$   | $$_____ | $$ \$$$| $$
+ \$$    $$   | $$     \$$    $$  | $$   | $$     \| $$  \$ | $$
+  \$$$$$$     \$$      \$$$$$$    \$$    \$$$$$$$$ \$$      \$$
+                                                               
+                                                               
+                                                               
+`)
+	ctx.DB.PrintSystem()
+	w.WriteHeader(http.StatusOK)
+	return nil
 }

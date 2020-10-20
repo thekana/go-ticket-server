@@ -18,8 +18,8 @@ func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error
 	})
 	if err != nil {
 		if token != nil && token.Claims != nil {
-			if verr, ok := token.Claims.Valid().(*jwt.ValidationError); ok {
-				if verr.Errors == jwt.ValidationErrorExpired {
+			if validationError, ok := token.Claims.Valid().(*jwt.ValidationError); ok {
+				if validationError.Errors == jwt.ValidationErrorExpired {
 					return false, nil, errors.New("Token is expired")
 				}
 			}
@@ -43,7 +43,7 @@ func (ctx *Context) createToken(username string, userID int64, roles []string) (
 		"exp":  time.Now().Add(ttl).Unix(),
 		"uid":  userID,
 		"name": username,
-		"rol":  roles,
+		"role": roles,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodRS512, claims)

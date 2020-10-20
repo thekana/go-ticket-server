@@ -8,14 +8,12 @@ import (
 )
 
 type Context struct {
-	Logger        log.Logger
-	Config        *Config
-	RemoteAddress string
-
+	Logger                log.Logger
+	Config                *Config
+	RemoteAddress         string
 	TokenSignerPrivateKey *rsa.PrivateKey
 	TokenSignerPublicKey  *rsa.PublicKey
-
-	DB db.DB
+	DB                    db.DB
 }
 
 func (app *App) NewContext() *Context {
