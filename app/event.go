@@ -1,9 +1,6 @@
 package app
 
 import (
-	"fmt"
-	"strings"
-	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
 )
 
@@ -52,18 +49,11 @@ func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, e
 		return nil, err
 	}
 
-	_, claims, err := ctx.verifyToken(params.AuthToken)
+	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Organizer})
 	if err != nil {
 		return nil, err
 	}
-	roles := fmt.Sprint((*claims)["role"])
-	if !strings.Contains(roles, "organizer") {
-		return nil, &customError.AuthorizationError{
-			Code:    customError.Unauthorized,
-			Message: "for organizers only",
-		}
-	}
-	eventID, err := ctx.DB.CreateEvent(int((*claims)["uid"].(float64)), params.Name, params.Quota)
+	eventID, err := ctx.DB.CreateEvent(int(authRes.User.ID), params.Name, params.Quota)
 	if err != nil {
 		return nil, err
 	}
@@ -77,16 +67,9 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 		logger.Errorf("validateInput error : %s", err)
 		return nil, err
 	}
-
-	tokenValid, _, err := ctx.verifyToken(params.AuthToken)
+	_, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Admin, model.Organizer})
 	if err != nil {
 		return nil, err
-	}
-	if !tokenValid {
-		return nil, &customError.AuthorizationError{
-			Code:    customError.InvalidAuthToken,
-			Message: "invalid token",
-		}
 	}
 	eventDetail, err := ctx.DB.ViewEventDetail(params.EventID)
 	if err != nil {
@@ -103,21 +86,13 @@ func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEvent
 		return nil, err
 	}
 
-	tokenValid, claims, err := ctx.verifyToken(params.AuthToken)
+	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Admin, model.Organizer})
 	if err != nil {
 		return nil, err
 	}
-	if !tokenValid {
-		return nil, &customError.AuthorizationError{
-			Code:    customError.InvalidAuthToken,
-			Message: "invalid token",
-		}
-	}
-	roles := fmt.Sprint((*claims)["role"])
-	userID := int((*claims)["uid"].(float64))
 	var event []*model.EventDetail
-	if strings.Contains(roles, "organizer") {
-		event, err = ctx.DB.OrganizerViewAllEvents(userID)
+	if authRes.IsOrganizer {
+		event, err = ctx.DB.OrganizerViewAllEvents(int(authRes.User.ID))
 	} else {
 		event, err = ctx.DB.ViewAllEvents()
 	}
@@ -139,7 +114,7 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 	if err != nil {
 		return nil, err
 	}
-	// Now check if the event is owned by user
+
 	record, err := ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, int(authRes.User.ID))
 	if err != nil {
 		return nil, err

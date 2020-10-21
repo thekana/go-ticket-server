@@ -7,7 +7,6 @@ import (
 	"ticket-reservation/http_api/routes"
 )
 
-// AuthRoutes is for adding auth api routes
 var UtilRoutes = routes.Routes{
 	routes.Route{
 		Name:        "Print",
