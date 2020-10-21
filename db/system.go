@@ -43,7 +43,6 @@ type Reservation struct {
 	ReservedBy int
 	OwnedBy    int
 	EventID    string
-	EventName  string
 	Amount     int
 	Voided     bool
 }
@@ -158,11 +157,17 @@ func (receiver *System) GetEvent(eventID string) (*Event, bool) {
 	return e, exist
 }
 
+func (receiver *System) GetEventName(eventID string) string {
+	e, exist := receiver.eventMap[eventID]
+	if exist {
+		return e.Name
+	}
+	return ""
+}
+
 func (receiver *System) GetAllEvents() []*Event {
 	return receiver.eventList
 }
-
-// TODO: Add helper functions
 
 func (receiver *System) GetEventsOwnedByUser(uid int) []*Event {
 	return receiver.userMap[uid].Events
@@ -184,7 +189,6 @@ func (receiver *System) UserMakeReservation(userID int, eventID string, amount i
 		ReservedBy: userID,
 		OwnedBy:    event.OrganizerID,
 		EventID:    event.ID,
-		EventName:  event.Name,
 		Amount:     amount,
 		Voided:     false,
 	}
@@ -194,4 +198,8 @@ func (receiver *System) UserMakeReservation(userID int, eventID string, amount i
 	// Add ticket to UserData
 	receiver.userMap[userID].AddReservation(ticket)
 	return ticket, nil
+}
+
+func (receiver *System) UserViewReservations(userID int) ([]*Reservation, error) {
+	return receiver.userMap[userID].Reservations, nil
 }

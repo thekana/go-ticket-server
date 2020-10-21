@@ -12,6 +12,14 @@ type MakeReservationResult struct {
 	Ticket *model.ReservationDetail `json:"ticket"`
 }
 
+type ViewReservationsParams struct {
+	AuthToken string `json:"authToken" validate:"required"`
+}
+
+type ViewReservationsResult struct {
+	Tickets []*model.ReservationDetail `json:"tickets"`
+}
+
 func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservationResult, error) {
 	logger := ctx.getLogger()
 
@@ -28,4 +36,22 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 		return nil, err
 	}
 	return &MakeReservationResult{Ticket: ticket}, nil
+}
+
+func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReservationsResult, error) {
+	logger := ctx.getLogger()
+
+	if err := validateInput(params); err != nil {
+		logger.Errorf("validateInput error : %s", err)
+		return nil, err
+	}
+	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Organizer, model.Admin})
+	if err != nil {
+		return nil, err
+	}
+	tickets, err := ctx.DB.ViewAllReservations(int(authRes.User.ID))
+	if err != nil {
+		return nil, err
+	}
+	return &ViewReservationsResult{Tickets: tickets}, nil
 }
