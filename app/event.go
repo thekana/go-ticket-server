@@ -33,6 +33,17 @@ type ViewAllEventResult struct {
 	Events interface{} `json:"events"`
 }
 
+type EditEventParams struct {
+	AuthToken    string `json:"authToken" validate:"required"`
+	EventID      string `json:"eventID" validate:"required"`
+	NewEventName string `json:"newEventName" validate:"required"`
+	NewQuota     int    `json:"newQuota" validate:"required"`
+}
+
+type EditEventResult struct {
+	EditedEvent interface{} `json:"editedEvent"`
+}
+
 func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, error) {
 	logger := ctx.getLogger()
 
@@ -114,4 +125,24 @@ func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEvent
 		return nil, err
 	}
 	return &ViewAllEventResult{Events: event}, nil
+}
+
+func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, error) {
+	logger := ctx.getLogger()
+
+	if err := validateInput(params); err != nil {
+		logger.Errorf("validateInput error : %s", err)
+		return nil, err
+	}
+
+	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Organizer})
+	if err != nil {
+		return nil, err
+	}
+	// Now check if the event is owned by user
+	record, err := ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, int(authRes.User.ID))
+	if err != nil {
+		return nil, err
+	}
+	return &EditEventResult{EditedEvent: record}, nil
 }

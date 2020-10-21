@@ -30,6 +30,45 @@ var EventRoutes = routes.Routes{
 		Method:      "POST",
 		HandlerFunc: ViewOneEvent,
 	},
+	routes.Route{
+		Name:        "Edit an event",
+		Path:        "/edit",
+		Method:      "POST",
+		HandlerFunc: EditEvent,
+	},
+}
+
+func EditEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
+	var input app.EditEventParams
+	defer r.Body.Close()
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		return err
+	}
+
+	if err := json.Unmarshal(body, &input); err != nil {
+		return &customError.UserError{
+			Code:           customError.InvalidJSONString,
+			Message:        "Invalid JSON string",
+			HTTPStatusCode: http.StatusBadRequest,
+		}
+	}
+	resData, err := ctx.EditEventDetail(input)
+	if err != nil {
+		return err
+	}
+	data, err := json.Marshal(&response.Response{
+		Code:    0,
+		Message: "",
+		Data:    resData,
+	})
+	if err != nil {
+		return err
+	}
+
+	w.WriteHeader(http.StatusOK)
+	_, err = w.Write(data)
+	return err
 }
 
 func init() {

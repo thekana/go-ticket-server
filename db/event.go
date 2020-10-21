@@ -1,13 +1,16 @@
 package db
 
-import "ticket-reservation/db/model"
+import (
+	"github.com/pkg/errors"
+	"ticket-reservation/db/model"
+)
 
 type DBEventInterface interface {
 	CreateEvent(ownerId int, eventName string, quota int) (string, error)
 	ViewEventDetail(eventId string) (*model.EventDetail, error)
 	ViewAllEvents() ([]*model.EventDetail, error)
 	OrganizerViewAllEvents(uid int) ([]*model.EventDetail, error)
-	EditEvent(eventId string) (interface{}, error)
+	EditEvent(eventId string, newName string, newQuota int, applicantID int) (*model.EventDetail, error)
 	DeleteEvent(eventId string) (interface{}, error)
 }
 
@@ -63,8 +66,27 @@ func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail,
 	return event, nil
 }
 
-func (pgdb *PostgresqlDB) EditEvent(eventId string) (interface{}, error) {
-	return nil, nil
+func (pgdb *PostgresqlDB) EditEvent(eventId string, newName string, newQuota int, applicantID int) (*model.EventDetail, error) {
+	eventToEdit, exist := pgdb.MemoryDB.EventMap[eventId]
+	if !exist {
+		return nil, errors.New("Event not in system")
+	}
+	if eventToEdit.OrganizerID != applicantID {
+		return nil, errors.New("Not Authorized")
+	}
+	eventToEdit.Name = newName
+	if newQuota < eventToEdit.SoldAmount {
+		return nil, errors.New("New Quota must be more than sold quota")
+	}
+	eventToEdit.Quota = newQuota
+
+	return &model.EventDetail{
+		EventID:     eventToEdit.Id,
+		OrganizerID: eventToEdit.OrganizerID,
+		EventName:   eventToEdit.Name,
+		Quota:       eventToEdit.Quota,
+		SoldAmount:  eventToEdit.SoldAmount,
+	}, nil
 }
 func (pgdb *PostgresqlDB) DeleteEvent(eventId string) (interface{}, error) {
 	return nil, nil

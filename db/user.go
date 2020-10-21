@@ -2,8 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"ticket-reservation/db/model"
 )
@@ -41,9 +39,9 @@ func (pgdb *PostgresqlDB) CreateUser(username string) (int64, error) {
 		return 0, errors.Wrap(err, "Unable to create user")
 	}
 	pgdb.MemoryDB.AddUserToSystem(NewUserData(username, int(userID)))
-	fmt.Printf("-----------------\n")
-	spew.Dump(pgdb.MemoryDB)
-	fmt.Printf("-----------------\n")
+	//fmt.Printf("-----------------\n")
+	//spew.Dump(pgdb.MemoryDB)
+	//fmt.Printf("-----------------\n")
 	return userID, nil
 }
 
@@ -101,9 +99,6 @@ func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, e
 	}
 	return userWithRole, nil
 }
-
-// Requirement doesnt say anything about assigning roles to new user created via API
-// Assumption: new users to always have customer role
 
 func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role model.Role) (int64, error) {
 	var rowId int64

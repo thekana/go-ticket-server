@@ -7,6 +7,10 @@ import (
 	"time"
 )
 
+var (
+	ErrTokenExpired = errors.New("Token is expired")
+)
+
 func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:

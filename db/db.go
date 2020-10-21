@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
+	"ticket-reservation/db/model"
 
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -17,6 +18,7 @@ type DB interface {
 	//DBReservationInterface
 	Close() error
 	PrintSystem()
+	PopulateSystem()
 }
 
 type PostgresqlDB struct {
@@ -65,4 +67,24 @@ func (pgdb *PostgresqlDB) Close() error {
 
 func (pgdb *PostgresqlDB) PrintSystem() {
 	spew.Dump(pgdb.MemoryDB)
+}
+
+func (pgdb *PostgresqlDB) PopulateSystem() {
+	// Create 1 admin
+	adminID, _ := pgdb.CreateUser("admin")
+	_, _ = pgdb.AssignRoleToUser(adminID, model.Admin)
+	// Create 2 orgs
+	org1ID, _ := pgdb.CreateUser("org1")
+	org2ID, _ := pgdb.CreateUser("org2")
+	_, _ = pgdb.AssignRoleToUser(org1ID, model.Organizer)
+	_, _ = pgdb.AssignRoleToUser(org2ID, model.Organizer)
+	// Create 1 cust
+	cust1ID, _ := pgdb.CreateUser("cust1")
+	_, _ = pgdb.AssignRoleToUser(cust1ID, model.Organizer)
+	// Each org create two events
+	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event1", 1000)
+	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event2", 1000)
+	// Each org create two events
+	_, _ = pgdb.CreateEvent(int(org2ID), "org2 event1", 1000)
+	_, _ = pgdb.CreateEvent(int(org2ID), "org2 event2", 1000)
 }

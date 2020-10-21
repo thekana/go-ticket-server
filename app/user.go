@@ -1,6 +1,8 @@
 package app
 
-import "ticket-reservation/db/model"
+import (
+	"ticket-reservation/db/model"
+)
 
 // RegisterParams is
 type RegisterParams struct {
