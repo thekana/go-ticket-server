@@ -21,7 +21,7 @@ func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) 
 	event := NewEvent(ownerId, eventName, quota)
 	// Add event to memory
 	pgdb.MemoryDB.AddEventToSystem(event)
-	return event.Id, nil
+	return event.ID, nil
 }
 
 // TODO: Errors handling
@@ -36,7 +36,7 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId string) (*model.EventDetail, e
 		}
 	}
 	return &model.EventDetail{
-		EventID:     thisEvent.Id,
+		EventID:     thisEvent.ID,
 		OrganizerID: thisEvent.OrganizerID,
 		EventName:   thisEvent.Name,
 		Quota:       thisEvent.Quota,
@@ -51,7 +51,7 @@ func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 			continue
 		}
 		event = append(event, &model.EventDetail{
-			EventID:     e.Id,
+			EventID:     e.ID,
 			OrganizerID: e.OrganizerID,
 			EventName:   e.Name,
 			Quota:       e.Quota,
@@ -69,7 +69,7 @@ func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail,
 			continue
 		}
 		event = append(event, &model.EventDetail{
-			EventID:     e.Id,
+			EventID:     e.ID,
 			OrganizerID: e.OrganizerID,
 			EventName:   e.Name,
 			Quota:       e.Quota,
@@ -106,7 +106,7 @@ func (pgdb *PostgresqlDB) EditEvent(eventId string, newName string, newQuota int
 	eventToEdit.Quota = newQuota
 
 	return &model.EventDetail{
-		EventID:     eventToEdit.Id,
+		EventID:     eventToEdit.ID,
 		OrganizerID: eventToEdit.OrganizerID,
 		EventName:   eventToEdit.Name,
 		Quota:       eventToEdit.Quota,
