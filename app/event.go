@@ -41,6 +41,15 @@ type EditEventResult struct {
 	EditedEvent interface{} `json:"editedEvent"`
 }
 
+type DeleteEventParams struct {
+	AuthToken string `json:"authToken" validate:"required"`
+	EventID   string `json:"eventID" validate:"required"`
+}
+
+type DeleteEventResult struct {
+	Message string `json:"message"`
+}
+
 func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, error) {
 	logger := ctx.getLogger()
 
@@ -120,4 +129,26 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 		return nil, err
 	}
 	return &EditEventResult{EditedEvent: record}, nil
+}
+
+func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, error) {
+	logger := ctx.getLogger()
+
+	if err := validateInput(params); err != nil {
+		logger.Errorf("validateInput error : %s", err)
+		return nil, err
+	}
+
+	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Admin, model.Organizer})
+	if err != nil {
+		return nil, err
+	}
+
+	result, err := ctx.DB.DeleteEvent(params.EventID, int(authRes.User.ID), authRes.IsAdmin)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &DeleteEventResult{Message: result}, nil
 }

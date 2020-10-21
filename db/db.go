@@ -80,7 +80,7 @@ func (pgdb *PostgresqlDB) PopulateSystem() {
 	_, _ = pgdb.AssignRoleToUser(org2ID, model.Organizer)
 	// Create 1 cust
 	cust1ID, _ := pgdb.CreateUser("cust1")
-	_, _ = pgdb.AssignRoleToUser(cust1ID, model.Organizer)
+	_, _ = pgdb.AssignRoleToUser(cust1ID, model.Customer)
 	// Each org create two events
 	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event1", 1000)
 	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event2", 1000)

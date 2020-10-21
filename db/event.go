@@ -1,7 +1,9 @@
 package db
 
 import (
-	"github.com/pkg/errors"
+	"fmt"
+	"net/http"
+	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
 )
 
@@ -11,7 +13,7 @@ type DBEventInterface interface {
 	ViewAllEvents() ([]*model.EventDetail, error)
 	OrganizerViewAllEvents(uid int) ([]*model.EventDetail, error)
 	EditEvent(eventId string, newName string, newQuota int, applicantID int) (*model.EventDetail, error)
-	DeleteEvent(eventId string) (interface{}, error)
+	DeleteEvent(eventId string, applicantID int, admin bool) (string, error)
 }
 
 // TODO: Errors handling
@@ -19,15 +21,20 @@ func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) 
 	event := NewEvent(ownerId, eventName, quota)
 	// Add event to memory
 	pgdb.MemoryDB.AddEventToSystem(event)
-	// Also add event to user
-	pgdb.MemoryDB.UserMap[ownerId].AddEvent(event)
 	return event.Id, nil
 }
 
 // TODO: Errors handling
 func (pgdb *PostgresqlDB) ViewEventDetail(eventId string) (*model.EventDetail, error) {
 	// Event detail is open anyone can view it
-	thisEvent := pgdb.MemoryDB.EventMap[eventId]
+	thisEvent, found := pgdb.MemoryDB.GetEvent(eventId)
+	if !found || thisEvent.Deleted {
+		return nil, &customError.UserError{
+			Code:           customError.UnknownError,
+			Message:        "Event not found",
+			HTTPStatusCode: http.StatusBadRequest,
+		}
+	}
 	return &model.EventDetail{
 		EventID:     thisEvent.Id,
 		OrganizerID: thisEvent.OrganizerID,
@@ -39,7 +46,10 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId string) (*model.EventDetail, e
 func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 	// For Admin and Customer
 	var event []*model.EventDetail
-	for _, e := range pgdb.MemoryDB.EventList {
+	for _, e := range pgdb.MemoryDB.GetAllEvents() {
+		if e.Deleted {
+			continue
+		}
 		event = append(event, &model.EventDetail{
 			EventID:     e.Id,
 			OrganizerID: e.OrganizerID,
@@ -54,7 +64,10 @@ func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail, error) {
 	// For Admin and Customer
 	var event []*model.EventDetail
-	for _, e := range pgdb.MemoryDB.UserMap[uid].Events {
+	for _, e := range pgdb.MemoryDB.GetEventsOwnedByUser(uid) {
+		if e.Deleted {
+			continue
+		}
 		event = append(event, &model.EventDetail{
 			EventID:     e.Id,
 			OrganizerID: e.OrganizerID,
@@ -67,16 +80,28 @@ func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail,
 }
 
 func (pgdb *PostgresqlDB) EditEvent(eventId string, newName string, newQuota int, applicantID int) (*model.EventDetail, error) {
-	eventToEdit, exist := pgdb.MemoryDB.EventMap[eventId]
+	eventToEdit, exist := pgdb.MemoryDB.GetEvent(eventId)
 	if !exist {
-		return nil, errors.New("Event not in system")
+		return nil, &customError.UserError{
+			Code:           customError.UnknownError,
+			Message:        "Event not found",
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	if eventToEdit.OrganizerID != applicantID {
-		return nil, errors.New("Not Authorized")
+		return nil, &customError.AuthorizationError{
+			Code:           customError.Unauthorized,
+			Message:        "Not Allowed",
+			HTTPStatusCode: http.StatusUnauthorized,
+		}
 	}
 	eventToEdit.Name = newName
 	if newQuota < eventToEdit.SoldAmount {
-		return nil, errors.New("New Quota must be more than sold quota")
+		return nil, &customError.UserError{
+			Code:           customError.UnknownError,
+			Message:        "New quota must not be less than sold tickets",
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	eventToEdit.Quota = newQuota
 
@@ -88,6 +113,27 @@ func (pgdb *PostgresqlDB) EditEvent(eventId string, newName string, newQuota int
 		SoldAmount:  eventToEdit.SoldAmount,
 	}, nil
 }
-func (pgdb *PostgresqlDB) DeleteEvent(eventId string) (interface{}, error) {
-	return nil, nil
+func (pgdb *PostgresqlDB) DeleteEvent(eventId string, applicantID int, admin bool) (string, error) {
+	eventToDelete, exist := pgdb.MemoryDB.GetEvent(eventId)
+	if !exist || eventToDelete.Deleted {
+		return "Event not in system", &customError.UserError{
+			Code:           customError.UnknownError,
+			Message:        "Event not found",
+			HTTPStatusCode: http.StatusBadRequest,
+		}
+	}
+	if admin {
+		pgdb.MemoryDB.DeleteEvent(eventId)
+	} else {
+		if eventToDelete.OrganizerID == applicantID {
+			pgdb.MemoryDB.DeleteEvent(eventId)
+		} else {
+			return "Not allowed", &customError.AuthorizationError{
+				Code:           customError.Unauthorized,
+				Message:        "Not Allowed",
+				HTTPStatusCode: http.StatusUnauthorized,
+			}
+		}
+	}
+	return fmt.Sprintf("%s deleted by user %d", eventId, applicantID), nil
 }

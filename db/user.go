@@ -3,6 +3,8 @@ package db
 import (
 	"context"
 	"github.com/pkg/errors"
+	"net/http"
+	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
 )
 
@@ -95,7 +97,11 @@ func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, e
 	}
 	userWithRole.Username = name
 	if len(userWithRole.RoleList) == 0 {
-		return nil, errors.New("User Not Found")
+		return nil, &customError.UserError{
+			Code:           customError.UserNotFound,
+			Message:        "User not found",
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	return userWithRole, nil
 }

@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 )
 
-// TODO: Complete all methods and start simple testing
-
 type Event struct {
 	Id          string
 	OrganizerID int
@@ -94,30 +92,53 @@ func (receiver *UserData) AddEvent(res *Event) {
 }
 
 type System struct {
-	UserMap      map[int]*UserData
-	EventList    []*Event          // allows admin/cust to view/delete all events
-	EventMap     map[string]*Event // allows for quick access
-	ResourceLock *mapmutex.Mutex
+	userMap      map[int]*UserData
+	eventList    []*Event
+	eventMap     map[string]*Event
+	resourceLock *mapmutex.Mutex
 }
 
+// Every mutation & read should be called from System functions so it can handle locks
+
+// TODO: Add locks
 func (receiver *System) AddUserToSystem(user *UserData) {
-	receiver.UserMap[user.UserId] = user
+	receiver.userMap[user.UserId] = user
 }
 
+// TODO: Add locks
 func (receiver *System) AddEventToSystem(event *Event) {
-	receiver.EventList = append(receiver.EventList, event)
-	receiver.EventMap[event.Id] = event
+	receiver.eventList = append(receiver.eventList, event)
+	receiver.eventMap[event.Id] = event
+	receiver.userMap[event.OrganizerID].AddEvent(event)
+}
+
+// TODO: Add locks
+func (receiver *System) DeleteEvent(eventID string) {
+	e, _ := receiver.eventMap[eventID]
+	e.Delete()
+}
+
+// TODO: Add locks
+func (receiver *System) GetEvent(eventID string) (*Event, bool) {
+	e, exist := receiver.eventMap[eventID]
+	return e, exist
+}
+
+func (receiver *System) GetAllEvents() []*Event {
+	return receiver.eventList
+}
+
+func (receiver *System) GetEventsOwnedByUser(uid int) []*Event {
+	return receiver.userMap[uid].Events
 }
 
 // TODO: Add helper functions
 
 func NewSystem() *System {
 	return &System{
-		UserMap:      make(map[int]*UserData),
-		EventList:    nil,
-		EventMap:     make(map[string]*Event),
-		ResourceLock: mapmutex.NewMapMutex(),
+		userMap:      make(map[int]*UserData),
+		eventList:    nil,
+		eventMap:     make(map[string]*Event),
+		resourceLock: mapmutex.NewMapMutex(),
 	}
 }
-
-//var system System = NewSystem()
