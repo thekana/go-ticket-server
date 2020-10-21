@@ -39,7 +39,7 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId string) (*model.EventDetail, e
 		EventID:     thisEvent.ID,
 		OrganizerID: thisEvent.OrganizerID,
 		EventName:   thisEvent.Name,
-		Quota:       thisEvent.Quota,
+		Quota:       thisEvent.Quota - thisEvent.SoldAmount,
 		SoldAmount:  thisEvent.SoldAmount,
 	}, nil
 }
@@ -54,7 +54,7 @@ func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 			EventID:     e.ID,
 			OrganizerID: e.OrganizerID,
 			EventName:   e.Name,
-			Quota:       e.Quota,
+			Quota:       e.Quota - e.SoldAmount,
 			SoldAmount:  e.SoldAmount,
 		})
 	}
@@ -72,7 +72,7 @@ func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail,
 			EventID:     e.ID,
 			OrganizerID: e.OrganizerID,
 			EventName:   e.Name,
-			Quota:       e.Quota,
+			Quota:       e.Quota - e.SoldAmount,
 			SoldAmount:  e.SoldAmount,
 		})
 	}
@@ -109,7 +109,7 @@ func (pgdb *PostgresqlDB) EditEvent(eventId string, newName string, newQuota int
 		EventID:     eventToEdit.ID,
 		OrganizerID: eventToEdit.OrganizerID,
 		EventName:   eventToEdit.Name,
-		Quota:       eventToEdit.Quota,
+		Quota:       eventToEdit.Quota - eventToEdit.SoldAmount,
 		SoldAmount:  eventToEdit.SoldAmount,
 	}, nil
 }

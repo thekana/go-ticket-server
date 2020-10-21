@@ -15,7 +15,7 @@ import (
 type DB interface {
 	DBUserInterface
 	DBEventInterface
-	//DBReservationInterface
+	DBReservationInterface
 	Close() error
 	PrintSystem()
 	PopulateSystem()

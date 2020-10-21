@@ -6,6 +6,26 @@ import (
 	"fmt"
 	"github.com/EagleChen/mapmutex"
 	"github.com/google/uuid"
+	"net/http"
+	customError "ticket-reservation/custom_error"
+)
+
+var (
+	EventNotFoundError = &customError.UserError{
+		Code:           customError.UnknownError,
+		Message:        "Event not found",
+		HTTPStatusCode: http.StatusBadRequest,
+	}
+	QuotaError = &customError.UserError{
+		Code:           0,
+		Message:        "Not Enough Quota",
+		HTTPStatusCode: http.StatusBadRequest,
+	}
+	SoldOutError = &customError.UserError{
+		Code:           0,
+		Message:        "Sold Out",
+		HTTPStatusCode: http.StatusBadRequest,
+	}
 )
 
 type Event struct {
@@ -23,7 +43,8 @@ type Reservation struct {
 	ReservedBy int
 	OwnedBy    int
 	EventID    string
-	Tickets    int
+	EventName  string
+	Amount     int
 	Voided     bool
 }
 
@@ -56,7 +77,7 @@ func NewReservation(eventId string, userId int, ownerId int, amountReserved int)
 		ReservedBy: userId,
 		OwnedBy:    ownerId,
 		EventID:    eventId,
-		Tickets:    amountReserved,
+		Amount:     amountReserved,
 		Voided:     false,
 	}
 }
@@ -96,6 +117,10 @@ func (receiver *Event) Delete() {
 	for _, ticket := range receiver.Tickets {
 		ticket.Voided = true
 	}
+}
+
+func (receiver *Event) AddReservation(ticket *Reservation) {
+	receiver.Tickets = append(receiver.Tickets, ticket)
 }
 
 func (receiver *UserData) AddReservation(res *Reservation) {
@@ -141,4 +166,32 @@ func (receiver *System) GetAllEvents() []*Event {
 
 func (receiver *System) GetEventsOwnedByUser(uid int) []*Event {
 	return receiver.userMap[uid].Events
+}
+
+func (receiver *System) UserMakeReservation(userID int, eventID string, amount int) (*Reservation, error) {
+	event, found := receiver.GetEvent(eventID)
+	if !found {
+		return nil, EventNotFoundError
+	}
+	if event.IsSoldOut() {
+		return nil, SoldOutError
+	}
+	if event.Quota-event.SoldAmount-amount < 0 {
+		return nil, QuotaError
+	}
+	ticket := &Reservation{
+		ID:         uuid.New().String(),
+		ReservedBy: userID,
+		OwnedBy:    event.OrganizerID,
+		EventID:    event.ID,
+		EventName:  event.Name,
+		Amount:     amount,
+		Voided:     false,
+	}
+	// Commit ticket to event
+	event.SoldAmount += ticket.Amount
+	event.AddReservation(ticket)
+	// Add ticket to UserData
+	receiver.userMap[userID].AddReservation(ticket)
+	return ticket, nil
 }
