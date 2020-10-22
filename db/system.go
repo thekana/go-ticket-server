@@ -7,6 +7,7 @@ import (
 	"github.com/EagleChen/mapmutex"
 	"github.com/google/uuid"
 	"net/http"
+	"sync"
 	customError "ticket-reservation/custom_error"
 )
 
@@ -65,10 +66,13 @@ type UserData struct {
 }
 
 type System struct {
-	userMap      map[int]*UserData
-	eventList    []*Event
-	eventMap     map[string]*Event
-	resourceLock *mapmutex.Mutex
+	userMap       map[int]*UserData
+	eventList     []*Event
+	eventMap      map[string]*Event
+	resourceLock  *mapmutex.Mutex
+	userMapLock   sync.RWMutex
+	eventMapLock  sync.RWMutex
+	eventListLock sync.RWMutex
 }
 
 func NewUserData(username string, id int) *UserData {
@@ -77,17 +81,6 @@ func NewUserData(username string, id int) *UserData {
 		UserID:       id,
 		Reservations: nil,
 		Events:       nil,
-	}
-}
-
-func NewReservation(eventId string, userId int, ownerId int, amountReserved int) *Reservation {
-	return &Reservation{
-		ID:         uuid.New().String(),
-		ReservedBy: userId,
-		OwnedBy:    ownerId,
-		EventID:    eventId,
-		Amount:     amountReserved,
-		Voided:     false,
 	}
 }
 
