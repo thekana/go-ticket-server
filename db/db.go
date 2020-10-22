@@ -67,6 +67,13 @@ func (pgdb *PostgresqlDB) Close() error {
 
 func (pgdb *PostgresqlDB) PrintSystem() {
 	spew.Dump(pgdb.MemoryDB)
+	for _, elem := range pgdb.MemoryDB.userMap {
+		count := 0
+		for _, res := range elem.Reservations {
+			count += res.Amount
+		}
+		fmt.Printf("%s booked %d\n", elem.Username, count)
+	}
 }
 
 func (pgdb *PostgresqlDB) PopulateSystem() {
@@ -82,9 +89,9 @@ func (pgdb *PostgresqlDB) PopulateSystem() {
 	cust1ID, _ := pgdb.CreateUser("cust1")
 	_, _ = pgdb.AssignRoleToUser(cust1ID, model.Customer)
 	// Each org create two events
-	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event1", 1000)
-	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event2", 1000)
+	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event1", 777)
+	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event2", 777)
 	// Each org create two events
-	_, _ = pgdb.CreateEvent(int(org2ID), "org2 event1", 1000)
-	_, _ = pgdb.CreateEvent(int(org2ID), "org2 event2", 1000)
+	_, _ = pgdb.CreateEvent(int(org2ID), "org2 event1", 777)
+	_, _ = pgdb.CreateEvent(int(org2ID), "org2 event2", 777)
 }
