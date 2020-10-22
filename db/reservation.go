@@ -1,12 +1,14 @@
 package db
 
-import "ticket-reservation/db/model"
+import (
+	"fmt"
+	"ticket-reservation/db/model"
+)
 
 type DBReservationInterface interface {
 	MakeReservation(userID int, eventID string, amount int) (*model.ReservationDetail, error)
 	ViewAllReservations(userID int) ([]*model.ReservationDetail, error)
-	//EditReservation()
-	//DeleteReservation()
+	CancelReservation(userID int, reservationID string) (string, error)
 }
 
 func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID string, amount int) (*model.ReservationDetail, error) {
@@ -31,6 +33,9 @@ func (pgdb *PostgresqlDB) ViewAllReservations(userID int) ([]*model.ReservationD
 	}
 	var res []*model.ReservationDetail
 	for _, ticket := range tickets {
+		if ticket.Voided {
+			continue
+		}
 		res = append(res, &model.ReservationDetail{
 			ReservationID: ticket.ID,
 			EventID:       ticket.EventID,
@@ -43,6 +48,11 @@ func (pgdb *PostgresqlDB) ViewAllReservations(userID int) ([]*model.ReservationD
 	return res, nil
 }
 
-//func (pgdb *PostgresqlDB)
-//func (pgdb *PostgresqlDB)
-//func (pgdb *PostgresqlDB)
+func (pgdb *PostgresqlDB) CancelReservation(userID int, reservationID string) (string, error) {
+	err := pgdb.MemoryDB.UserCancelReservation(userID, reservationID)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("Reservation %s Cancelled", reservationID), nil
+
+}

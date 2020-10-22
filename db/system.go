@@ -26,6 +26,16 @@ var (
 		Message:        "Sold Out",
 		HTTPStatusCode: http.StatusBadRequest,
 	}
+	UserNotFoundError = &customError.UserError{
+		Code:           0,
+		Message:        "User not found",
+		HTTPStatusCode: http.StatusBadRequest,
+	}
+	ReservationNotFoundError = &customError.UserError{
+		Code:           0,
+		Message:        "Reservation not found",
+		HTTPStatusCode: http.StatusBadRequest,
+	}
 )
 
 type Event struct {
@@ -175,7 +185,7 @@ func (receiver *System) GetEventsOwnedByUser(uid int) []*Event {
 
 func (receiver *System) UserMakeReservation(userID int, eventID string, amount int) (*Reservation, error) {
 	event, found := receiver.GetEvent(eventID)
-	if !found {
+	if !found || event.Deleted {
 		return nil, EventNotFoundError
 	}
 	if event.IsSoldOut() {
@@ -202,4 +212,29 @@ func (receiver *System) UserMakeReservation(userID int, eventID string, amount i
 
 func (receiver *System) UserViewReservations(userID int) ([]*Reservation, error) {
 	return receiver.userMap[userID].Reservations, nil
+}
+
+func (receiver *System) UserCancelReservation(userID int, reservationID string) error {
+	// Lock associated Event here
+	thisUser, found := receiver.userMap[userID]
+	if !found {
+		return UserNotFoundError
+	}
+	// Now loop through all reservations
+	found = false
+	var thisReservation *Reservation
+	for _, reservation := range thisUser.Reservations {
+		if reservation.ID == reservationID && !reservation.Voided {
+			found = true
+			thisReservation = reservation
+			break
+		}
+	}
+	if !found {
+		return ReservationNotFoundError
+	}
+	// Event reclaims quota
+	receiver.eventMap[thisReservation.EventID].SoldAmount -= thisReservation.Amount
+	thisReservation.Voided = true
+	return nil
 }

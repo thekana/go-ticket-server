@@ -15,4 +15,6 @@ func main() {
 	a.Username = "hello"
 	spew.Dump(a)
 	spew.Dump(sys)
+	a = nil
+	spew.Dump(sys)
 }
