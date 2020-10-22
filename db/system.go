@@ -182,7 +182,7 @@ func (receiver *System) UserMakeReservation(userID int, eventID string, amount i
 	if !found || event.Deleted {
 		return nil, EventNotFoundError
 	}
-	//receiver.resourceLock.TryLock(eventID)
+	receiver.resourceLock.TryLock(eventID)
 	if event.IsSoldOut() {
 		return nil, SoldOutError
 	}
@@ -200,11 +200,11 @@ func (receiver *System) UserMakeReservation(userID int, eventID string, amount i
 	// Commit ticket to event
 	event.SoldAmount += ticket.Amount
 	event.AddReservation(ticket)
-	//receiver.resourceLock.Unlock(eventID)
+	receiver.resourceLock.Unlock(eventID)
 	// Add ticket to UserData
-	//receiver.resourceLock.TryLock(userID)
+	receiver.resourceLock.TryLock(userID)
 	receiver.userMap[userID].AddReservation(ticket)
-	//receiver.resourceLock.Unlock(userID)
+	receiver.resourceLock.Unlock(userID)
 	return ticket, nil
 }
 
