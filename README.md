@@ -23,9 +23,3 @@
    go run main.go migrate-db
    go run -tags debug main.go serve-api
    ```
-
-### Todo Monday
-- [ ] Construct pseudo-database
-- [ ] Write functions in app package
-- [ ] Write handles in api package
-- [ ] Check db/user.go and model.go
