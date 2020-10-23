@@ -3,7 +3,6 @@ package db
 // Idea: Objects are not deleted from memory. Use flags
 
 import (
-	"fmt"
 	"github.com/EagleChen/mapmutex"
 	"github.com/google/uuid"
 	"net/http"
@@ -39,6 +38,28 @@ var (
 	}
 )
 
+type RWMap struct {
+	sync.RWMutex
+	m map[string]interface{}
+}
+
+func (r *RWMap) Get(key string) (interface{}, bool) {
+	r.RLock()
+	defer r.RUnlock()
+	item, found := r.m[key]
+	return item, found
+}
+
+func (r *RWMap) Set(key string, item interface{}) {
+	r.Lock()
+	defer r.Unlock()
+	r.m[key] = item
+}
+
+func (r *RWMap) GetMap() map[string]interface{} {
+	return r.m
+}
+
 type Event struct {
 	ID          string
 	OrganizerID int
@@ -47,6 +68,27 @@ type Event struct {
 	Tickets     []*Reservation
 	SoldAmount  int  // useful if updated quota less than soldAmount
 	Deleted     bool // set this to true after deleted
+}
+
+func (e *Event) IsSoldOut() bool {
+	if e.Quota-e.SoldAmount <= 0 {
+		return true
+	} else {
+		return false
+	}
+}
+
+func (e *Event) Delete() {
+	e.Deleted = true
+	for _, ticket := range e.Tickets {
+		// This operation is thread-safe because we the only operation we do on ticket
+		// after it is created is voiding it
+		ticket.Voided = true
+	}
+}
+
+func (e *Event) AddReservation(ticket *Reservation) {
+	e.Tickets = append(e.Tickets, ticket)
 }
 
 type Reservation struct {
@@ -63,15 +105,27 @@ type UserData struct {
 	UserID       int
 	Reservations []*Reservation // what this user reserves
 	Events       []*Event       // what this user owns
+	rLock        sync.Mutex
+	eLock        sync.Mutex
+}
+
+func (d *UserData) AddReservation(res *Reservation) {
+	d.rLock.Lock()
+	d.Reservations = append(d.Reservations, res)
+	d.rLock.Unlock()
+}
+
+func (d *UserData) AddEvent(res *Event) {
+	d.eLock.Lock()
+	d.Events = append(d.Events, res)
+	d.eLock.Unlock()
 }
 
 type System struct {
-	userMap       map[int]*UserData
+	userMap       RWMap
 	eventList     []*Event
-	eventMap      map[string]*Event
+	eventMap      RWMap
 	resourceLock  *mapmutex.Mutex
-	userMapLock   sync.RWMutex
-	eventMapLock  sync.RWMutex
 	eventListLock sync.RWMutex
 }
 
@@ -98,91 +152,75 @@ func NewEvent(ownerId int, eventName string, quota int) *Event {
 
 func NewSystem() *System {
 	return &System{
-		userMap:      make(map[int]*UserData),
-		eventList:    nil,
-		eventMap:     make(map[string]*Event),
+		userMap: RWMap{
+			m: make(map[string]interface{}),
+		},
+		eventList: nil,
+		eventMap: RWMap{
+			m: make(map[string]interface{}),
+		},
 		resourceLock: mapmutex.NewMapMutex(),
 	}
 }
 
-func (receiver *Event) IsSoldOut() bool {
-	if receiver.Quota-receiver.SoldAmount <= 0 {
-		return true
-	} else {
-		return false
-	}
+func (r *System) AddUserToSystem(user *UserData) {
+	r.userMap.Set(string(user.UserID), user)
 }
 
-// Admin or owner may call this function to delete event and void all Tickets
-func (receiver *Event) Delete() {
-	receiver.Deleted = true
-	for _, ticket := range receiver.Tickets {
-		ticket.Voided = true
-	}
+func (r *System) AddEventToSystem(event *Event) {
+	r.eventListLock.Lock()
+	r.eventList = append(r.eventList, event)
+	r.eventListLock.Unlock()
+	r.eventMap.Set(event.ID, event)
+	user, _ := r.userMap.Get(string(event.OrganizerID))
+	user.(*UserData).AddEvent(event)
 }
 
-func (receiver *Event) AddReservation(ticket *Reservation) {
-	receiver.Tickets = append(receiver.Tickets, ticket)
+func (r *System) DeleteEvent(eventID string) {
+	e, _ := r.eventMap.Get(eventID)
+	event := e.(*Event)
+	// Acquire event resource lock
+	r.resourceLock.TryLock(event.ID)
+	event.Delete()
+	r.resourceLock.Unlock(event.ID)
 }
 
-func (receiver *UserData) AddReservation(res *Reservation) {
-	receiver.Reservations = append(receiver.Reservations, res)
+func (r *System) GetEvent(eventID string) (*Event, bool) {
+	e, exist := r.eventMap.Get(eventID)
+	return e.(*Event), exist
 }
 
-// Every mutation & read should be called from System functions so it can handle locks
-
-func (receiver *UserData) AddEvent(res *Event) {
-	receiver.Events = append(receiver.Events, res)
-	fmt.Print(receiver.Events)
-}
-
-// TODO: Add locks
-func (receiver *System) AddUserToSystem(user *UserData) {
-	receiver.userMap[user.UserID] = user
-}
-
-// TODO: Add locks
-func (receiver *System) AddEventToSystem(event *Event) {
-	receiver.eventList = append(receiver.eventList, event)
-	receiver.eventMap[event.ID] = event
-	receiver.userMap[event.OrganizerID].AddEvent(event)
-}
-
-// TODO: Add locks
-func (receiver *System) DeleteEvent(eventID string) {
-	e, _ := receiver.eventMap[eventID]
-	e.Delete()
-}
-
-// TODO: Add locks
-func (receiver *System) GetEvent(eventID string) (*Event, bool) {
-	e, exist := receiver.eventMap[eventID]
-	return e, exist
-}
-
-func (receiver *System) GetEventName(eventID string) string {
-	e, exist := receiver.eventMap[eventID]
+func (r *System) GetEventName(eventID string) string {
+	e, exist := r.eventMap.Get(eventID)
 	if exist {
-		return e.Name
+		return e.(*Event).Name
 	}
 	return ""
 }
 
-func (receiver *System) GetAllEvents() []*Event {
-	return receiver.eventList
+func (r *System) GetAllEventsInSystem() []*Event {
+	// Allow dirty read
+	return r.eventList
 }
 
-func (receiver *System) GetEventsOwnedByUser(uid int) []*Event {
-	return receiver.userMap[uid].Events
+func (r *System) GetEventsByUserID(userID int) []*Event {
+	// Allow dirty read
+	user, _ := r.userMap.Get(string(userID))
+	return user.(*UserData).Events
 }
 
-func (receiver *System) UserMakeReservation(userID int, eventID string, amount int) (*Reservation, error) {
-	event, found := receiver.GetEvent(eventID)
+func (r *System) GetReservationsByUserID(userID int) []*Reservation {
+	// Allow dirty read
+	user, _ := r.userMap.Get(string(userID))
+	return user.(*UserData).Reservations
+}
 
+func (r *System) UserMakeReservation(userID int, eventID string, amount int) (*Reservation, error) {
+	event, found := r.GetEvent(eventID)
 	if !found || event.Deleted {
 		return nil, EventNotFoundError
 	}
-	receiver.resourceLock.TryLock(eventID)
+	r.resourceLock.TryLock(eventID)
 	if event.IsSoldOut() {
 		return nil, SoldOutError
 	}
@@ -200,21 +238,22 @@ func (receiver *System) UserMakeReservation(userID int, eventID string, amount i
 	// Commit ticket to event
 	event.SoldAmount += ticket.Amount
 	event.AddReservation(ticket)
-	receiver.resourceLock.Unlock(eventID)
-	// Add ticket to UserData
-	receiver.resourceLock.TryLock(userID)
-	receiver.userMap[userID].AddReservation(ticket)
-	receiver.resourceLock.Unlock(userID)
+	r.resourceLock.Unlock(eventID)
+
+	u, _ := r.userMap.Get(string(userID))
+	user := u.(*UserData)
+
+	r.resourceLock.TryLock(user.Username)
+	user.AddReservation(ticket)
+	r.resourceLock.Unlock(user.Username)
+
 	return ticket, nil
 }
 
-func (receiver *System) UserViewReservations(userID int) ([]*Reservation, error) {
-	return receiver.userMap[userID].Reservations, nil
-}
-
-func (receiver *System) UserCancelReservation(userID int, reservationID string) error {
+func (r *System) UserCancelReservation(userID int, reservationID string) error {
 	// Lock associated Event here
-	thisUser, found := receiver.userMap[userID]
+	u, found := r.userMap.Get(string(userID))
+	thisUser := u.(*UserData)
 	if !found {
 		return UserNotFoundError
 	}
@@ -232,7 +271,14 @@ func (receiver *System) UserCancelReservation(userID int, reservationID string) 
 		return ReservationNotFoundError
 	}
 	// Event reclaims quota
-	receiver.eventMap[thisReservation.EventID].SoldAmount -= thisReservation.Amount
+	// Acquire event lock
+	e, _ := r.eventMap.Get(thisReservation.EventID)
+	event := e.(*Event)
+	r.resourceLock.TryLock(thisReservation.EventID)
+	defer r.resourceLock.Unlock(thisReservation.EventID)
+	if !event.Deleted {
+		event.SoldAmount -= thisReservation.Amount
+	}
 	thisReservation.Voided = true
 	return nil
 }

@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/davecgh/go-spew/spew"
-	"ticket-reservation/db/model"
-
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-
+	"ticket-reservation/db/model"
 	"ticket-reservation/log"
 )
 
@@ -67,12 +65,14 @@ func (pgdb *PostgresqlDB) Close() error {
 
 func (pgdb *PostgresqlDB) PrintSystem() {
 	spew.Dump(pgdb.MemoryDB)
-	for _, elem := range pgdb.MemoryDB.userMap {
+	for _, elem := range pgdb.MemoryDB.userMap.GetMap() {
 		count := 0
-		for _, res := range elem.Reservations {
-			count += res.Amount
+		for _, res := range elem.(*UserData).Reservations {
+			if !res.Voided {
+				count += res.Amount
+			}
 		}
-		fmt.Printf("%s booked %d\n", elem.Username, count)
+		fmt.Printf("%s booked %d\n", elem.(*UserData).Username, count)
 	}
 }
 

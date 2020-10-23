@@ -13,17 +13,6 @@ type DBUserInterface interface {
 	GetUserById(id int64) (*model.UserWithRoleList, error)
 	AssignRoleToUser(id int64, role model.Role) (int64, error)
 	GetUserByName(name string) (*model.UserWithRoleList, error)
-
-	// TODO: [Phase 1] decide what to store in memory(pseudo-db) and to store in real db
-
-	// admin/cust view all event
-	// org create event [once created store quota in memory]
-	// org view own event
-	// org edit own event [update the final quota in memory]
-	// org delete own event -> should also go and delete related Reservations
-	// get Event detail by ID for booking purpose
-	// cust delete their Reservations from table [in memory for now]
-	// org fetch total ticket reserved / remaining (assumed for each event) return a list of such thing
 }
 
 func (pgdb *PostgresqlDB) CreateUser(username string) (int64, error) {
