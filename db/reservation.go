@@ -7,7 +7,7 @@ import (
 
 type DBReservationInterface interface {
 	MakeReservation(userID int, eventID string, amount int) (*model.ReservationDetail, error)
-	ViewAllReservations(userID int) ([]*model.ReservationDetail, error)
+	ViewAllReservations(userID int) []*model.ReservationDetail
 	CancelReservation(userID int, reservationID string) (string, error)
 }
 
@@ -26,11 +26,8 @@ func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID string, amount int
 	}, nil
 }
 
-func (pgdb *PostgresqlDB) ViewAllReservations(userID int) ([]*model.ReservationDetail, error) {
-	tickets, err := pgdb.MemoryDB.UserViewReservations(userID)
-	if err != nil {
-		return nil, err
-	}
+func (pgdb *PostgresqlDB) ViewAllReservations(userID int) []*model.ReservationDetail {
+	tickets := pgdb.MemoryDB.GetReservationsByUserID(userID)
 	var res []*model.ReservationDetail
 	for _, ticket := range tickets {
 		if ticket.Voided {
@@ -45,7 +42,7 @@ func (pgdb *PostgresqlDB) ViewAllReservations(userID int) ([]*model.ReservationD
 			Tickets:       ticket.Amount,
 		})
 	}
-	return res, nil
+	return res
 }
 
 func (pgdb *PostgresqlDB) CancelReservation(userID int, reservationID string) (string, error) {

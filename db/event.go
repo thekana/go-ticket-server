@@ -16,15 +16,12 @@ type DBEventInterface interface {
 	DeleteEvent(eventId string, applicantID int, admin bool) (string, error)
 }
 
-// TODO: Errors handling
 func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) (string, error) {
 	event := NewEvent(ownerId, eventName, quota)
 	// Add event to memory
 	pgdb.MemoryDB.AddEventToSystem(event)
 	return event.ID, nil
 }
-
-// TODO: Errors handling
 func (pgdb *PostgresqlDB) ViewEventDetail(eventId string) (*model.EventDetail, error) {
 	// Event detail is open anyone can view it
 	thisEvent, found := pgdb.MemoryDB.GetEvent(eventId)
@@ -46,7 +43,7 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId string) (*model.EventDetail, e
 func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 	// For Admin and Customer
 	var event []*model.EventDetail
-	for _, e := range pgdb.MemoryDB.GetAllEvents() {
+	for _, e := range pgdb.MemoryDB.GetAllEventsInSystem() {
 		if e.Deleted {
 			continue
 		}
@@ -60,11 +57,10 @@ func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 	}
 	return event, nil
 }
-
 func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail, error) {
 	// For Admin and Customer
 	var event []*model.EventDetail
-	for _, e := range pgdb.MemoryDB.GetEventsOwnedByUser(uid) {
+	for _, e := range pgdb.MemoryDB.GetEventsByUserID(uid) {
 		if e.Deleted {
 			continue
 		}
@@ -78,9 +74,10 @@ func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail,
 	}
 	return event, nil
 }
-
 func (pgdb *PostgresqlDB) EditEvent(eventId string, newName string, newQuota int, applicantID int) (*model.EventDetail, error) {
 	eventToEdit, exist := pgdb.MemoryDB.GetEvent(eventId)
+	pgdb.MemoryDB.resourceLock.TryLock(eventToEdit.ID)
+	defer pgdb.MemoryDB.resourceLock.Unlock(eventToEdit.ID)
 	if !exist {
 		return nil, &customError.UserError{
 			Code:           customError.UnknownError,

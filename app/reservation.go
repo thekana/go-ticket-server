@@ -58,7 +58,7 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 	if err != nil {
 		return nil, err
 	}
-	tickets, err := ctx.DB.ViewAllReservations(int(authRes.User.ID))
+	tickets := ctx.DB.ViewAllReservations(int(authRes.User.ID))
 	if err != nil {
 		return nil, err
 	}

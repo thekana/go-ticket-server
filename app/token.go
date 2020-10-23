@@ -39,7 +39,7 @@ func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error
 }
 
 func (ctx *Context) createToken(username string, userID int64, roles []string) (string, error) {
-	ttl := 1 * time.Hour
+	ttl := 5 * time.Hour
 
 	var claims jwt.MapClaims
 	claims = jwt.MapClaims{
