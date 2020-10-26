@@ -23,3 +23,7 @@
    go run main.go migrate-db
    go run -tags debug main.go serve-api
    ```
+4. Connect to psql
+    ```shell script
+    docker exec -ti ticket_reservation_postgres psql -U postgres
+    ```
