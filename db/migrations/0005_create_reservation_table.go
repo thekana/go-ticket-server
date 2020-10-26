@@ -15,7 +15,8 @@ func init() {
 					reservation_id         BIGSERIAL PRIMARY KEY NOT NULL,
 					user_id                BIGINT,
 					event_id               BIGINT,
-					quota                  BIGINT NOT NULL
+					quota                  BIGINT NOT NULL,
+					created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 				);
 				ALTER TABLE reservations
 					ADD CONSTRAINT FK_reserved_by
@@ -27,7 +28,8 @@ func init() {
 					ADD CONSTRAINT FK_reserved_for
 						FOREIGN KEY (event_id)
 							REFERENCES events (id)
-				;		  
+				ON DELETE CASCADE
+				;
 			`
 			err := db.Exec(sql).Error
 			return errors.Wrap(err, "unable to create reservations table")

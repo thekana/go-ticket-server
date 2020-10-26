@@ -1,14 +1,16 @@
 package db
 
 import (
+	"context"
 	"fmt"
+	"github.com/pkg/errors"
 	"net/http"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
 )
 
 type DBEventInterface interface {
-	CreateEvent(ownerId int, eventName string, quota int) (string, error)
+	CreateEvent(ownerId int, eventName string, quota int) (int64, error)
 	ViewEventDetail(eventId string) (*model.EventDetail, error)
 	ViewAllEvents() ([]*model.EventDetail, error)
 	OrganizerViewAllEvents(uid int) ([]*model.EventDetail, error)
@@ -16,11 +18,26 @@ type DBEventInterface interface {
 	DeleteEvent(eventId string, applicantID int, admin bool) (string, error)
 }
 
-func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) (string, error) {
-	event := NewEvent(ownerId, eventName, quota)
-	// Add event to memory
-	pgdb.MemoryDB.AddEventToSystem(event)
-	return event.ID, nil
+func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) (int64, error) {
+	var eventID int64
+	tx, err := pgdb.DB.Begin(context.Background())
+	if err != nil {
+		return 0, errors.Wrap(err, "Unable to make a transaction")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback(context.Background())
+		}
+	}()
+	err = tx.QueryRow(context.Background(), `INSERT INTO events ("name","quota","owner") values ($1,$2,$3) returning id`, eventName, quota, ownerId).Scan(&eventID)
+	if err != nil {
+		return 0, errors.Wrap(err, "Unable to create event")
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return 0, errors.Wrap(err, "Unable to commit a transaction")
+	}
+	return eventID, nil
 }
 func (pgdb *PostgresqlDB) ViewEventDetail(eventId string) (*model.EventDetail, error) {
 	// Event detail is open anyone can view it

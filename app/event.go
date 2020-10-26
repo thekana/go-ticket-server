@@ -11,7 +11,7 @@ type CreateEventParams struct {
 }
 
 type CreateEventResult struct {
-	EventID string `json:"eventID"`
+	EventID int64 `json:"eventID"`
 }
 
 type ViewEventParams struct {

@@ -15,7 +15,8 @@ func init() {
 				id            BIGSERIAL PRIMARY KEY NOT NULL,
 				name          TEXT NOT NULL,
 				quota         BIGINT NOT NULL,
-				owner         BIGINT NOT NULL,
+				owner         BIGINT NOT NULL references users(id),
+				sold		  BIGINT NOT NULL default 0,
 				created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
 				updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 			  );
