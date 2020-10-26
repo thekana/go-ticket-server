@@ -1,6 +1,8 @@
 package app
 
 import (
+	"net/http"
+	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
 )
 
@@ -11,12 +13,12 @@ type CreateEventParams struct {
 }
 
 type CreateEventResult struct {
-	EventID int64 `json:"eventID"`
+	EventID int `json:"eventID"`
 }
 
 type ViewEventParams struct {
 	AuthToken string `json:"authToken" validate:"required"`
-	EventID   string `json:"eventID" validate:"required"`
+	EventID   int    `json:"eventID" validate:"required"`
 }
 
 type ViewEventResult struct {
@@ -32,7 +34,7 @@ type ViewAllEventResult struct {
 
 type EditEventParams struct {
 	AuthToken    string `json:"authToken" validate:"required"`
-	EventID      string `json:"eventID" validate:"required"`
+	EventID      int    `json:"eventID" validate:"required"`
 	NewEventName string `json:"newEventName" validate:"required"`
 	NewQuota     int    `json:"newQuota" validate:"required"`
 }
@@ -62,7 +64,7 @@ func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, e
 	if err != nil {
 		return nil, err
 	}
-	eventID, err := ctx.DB.CreateEvent(int(authRes.User.ID), params.Name, params.Quota)
+	eventID, err := ctx.DB.CreateEvent(authRes.User.ID, params.Name, params.Quota)
 	if err != nil {
 		return nil, err
 	}
@@ -82,7 +84,11 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 	}
 	eventDetail, err := ctx.DB.ViewEventDetail(params.EventID)
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusNotFound,
+		}
 	}
 	return &ViewEventResult{Event: eventDetail}, nil
 }
@@ -101,7 +107,7 @@ func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEvent
 	}
 	var event []*model.EventDetail
 	if authRes.IsOrganizer {
-		event, err = ctx.DB.OrganizerViewAllEvents(int(authRes.User.ID))
+		event, err = ctx.DB.OrganizerViewAllEvents(authRes.User.ID)
 	} else {
 		event, err = ctx.DB.ViewAllEvents()
 	}
@@ -124,7 +130,7 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 		return nil, err
 	}
 
-	record, err := ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, int(authRes.User.ID))
+	record, err := ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, authRes.User.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -144,7 +150,7 @@ func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, e
 		return nil, err
 	}
 
-	result, err := ctx.DB.DeleteEvent(params.EventID, int(authRes.User.ID), authRes.IsAdmin)
+	result, err := ctx.DB.DeleteEvent(params.EventID, authRes.User.ID, authRes.IsAdmin)
 
 	if err != nil {
 		return nil, err

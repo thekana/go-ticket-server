@@ -38,7 +38,7 @@ func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error
 	return false, nil, errors.New("Invalid access token")
 }
 
-func (ctx *Context) createToken(username string, userID int64, roles []string) (string, error) {
+func (ctx *Context) createToken(username string, userID int, roles []string) (string, error) {
 	ttl := 5 * time.Hour
 
 	var claims jwt.MapClaims

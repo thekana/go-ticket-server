@@ -119,7 +119,7 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 
 func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.RegisterParams
-	var role model.Role = model.Customer
+	var role = model.Customer
 	if roleType := r.URL.Query().Get("type"); strings.ToLower(roleType) == "organizer" {
 		role = model.Organizer
 	}
@@ -141,7 +141,7 @@ func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	if err != nil {
 		return &customError.UserError{
 			Code:           customError.DuplicateUsername,
-			Message:        "Username already exists",
+			Message:        err.Error(),
 			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}

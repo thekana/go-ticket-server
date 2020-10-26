@@ -3,18 +3,18 @@
 package model
 
 type User struct {
-	ID       int64  `json:"id"`
+	ID       int    `json:"id"`
 	Username string `json:"username"`
 }
 
 type UserWithRoleList struct {
-	ID       int64    `json:"id"`
+	ID       int      `json:"id"`
 	Username string   `json:"username"`
 	RoleList []string `json:"roleList"`
 }
 
 type EventDetail struct {
-	EventID     string `json:"eventID"`
+	EventID     int    `json:"eventID"`
 	OrganizerID int    `json:"orgID"`
 	EventName   string `json:"eventName"`
 	Quota       int    `json:"quotaRemaining"`
@@ -22,8 +22,8 @@ type EventDetail struct {
 }
 
 type ReservationDetail struct {
-	ReservationID string
-	EventID       string
+	ReservationID int
+	EventID       int
 	EventName     string
 	OrganizerID   int
 	UserID        int

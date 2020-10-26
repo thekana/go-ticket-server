@@ -17,8 +17,8 @@ func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID string, amount int
 		return nil, err
 	}
 	return &model.ReservationDetail{
-		ReservationID: ticket.ID,
-		EventID:       ticket.EventID,
+		ReservationID: 0,
+		EventID:       0,
 		OrganizerID:   ticket.OwnedBy,
 		UserID:        ticket.ReservedBy,
 		EventName:     pgdb.MemoryDB.GetEventName(ticket.EventID),
@@ -34,8 +34,8 @@ func (pgdb *PostgresqlDB) ViewAllReservations(userID int) []*model.ReservationDe
 			continue
 		}
 		res = append(res, &model.ReservationDetail{
-			ReservationID: ticket.ID,
-			EventID:       ticket.EventID,
+			ReservationID: 0,
+			EventID:       0,
 			OrganizerID:   ticket.OwnedBy,
 			UserID:        ticket.ReservedBy,
 			EventName:     pgdb.MemoryDB.GetEventName(ticket.EventID),

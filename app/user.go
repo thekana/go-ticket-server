@@ -11,7 +11,7 @@ type RegisterParams struct {
 
 // RegisterResult is
 type RegisterResult struct {
-	ID int64 `json:"id"`
+	ID int `json:"id"`
 }
 
 // LoginParams is
@@ -22,7 +22,7 @@ type LoginParams struct {
 // LoginResult is
 type LoginResult struct {
 	AuthToken string `json:"authToken"`
-	UserID    int64  `json:"userId"`
+	UserID    int    `json:"userId"`
 }
 
 // GetLoggedInInfoParams is just here to check if token is working
@@ -32,7 +32,7 @@ type GetLoggedInInfoParams struct {
 
 // GetLoggedInInfoResult is
 type GetLoggedInInfoResult struct {
-	UserID int64       `json:"userId"`
+	UserID int         `json:"userId"`
 	Data   interface{} `json:"data"`
 }
 
@@ -84,7 +84,7 @@ func (ctx *Context) Register(params RegisterParams, role model.Role) (*RegisterR
 		logger.Errorf("validateInput error : %s", err)
 		return nil, err
 	}
-	userId, err := ctx.DB.CreateUser(params.Username, 0)
+	userId, err := ctx.DB.CreateUser(params.Username, role)
 	if err != nil {
 		return nil, err
 	}

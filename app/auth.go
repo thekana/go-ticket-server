@@ -65,7 +65,7 @@ func (ctx *Context) authorizeUser(authToken string, allowedRoles []model.Role) (
 	}
 	auth := &Auth{
 		User: &model.User{
-			ID:       int64((*jwtClaims)["uid"].(float64)),
+			ID:       int((*jwtClaims)["uid"].(float64)),
 			Username: (*jwtClaims)["name"].(string),
 		},
 		IsAdmin:     strings.Contains(roleString, roleNumToString(model.Admin)),

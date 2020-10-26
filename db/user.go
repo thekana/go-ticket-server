@@ -11,21 +11,21 @@ import (
 )
 
 type DBUserInterface interface {
-	CreateUser(username string, role model.Role) (int64, error)
-	GetUserById(id int64) (*model.UserWithRoleList, error)
+	CreateUser(username string, role model.Role) (int, error)
+	GetUserById(id int) (*model.UserWithRoleList, error)
 	GetUserByName(name string) (*model.UserWithRoleList, error)
 	//AssignRoleToUser(id int64, role model.Role) (int64, error)
 }
 
-func (pgdb *PostgresqlDB) CreateUser(username string, role model.Role) (int64, error) {
-	var userID int64
+func (pgdb *PostgresqlDB) CreateUser(username string, role model.Role) (int, error) {
+	var userID int
 	tx, err := pgdb.DB.Begin(context.Background())
 	if err != nil {
 		return 0, errors.Wrap(err, "Unable to make a transaction")
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			tx.Rollback(context.Background())
+			_ = tx.Rollback(context.Background())
 		}
 	}()
 	err = tx.QueryRow(context.Background(), `
@@ -56,7 +56,7 @@ func (pgdb *PostgresqlDB) CreateUser(username string, role model.Role) (int64, e
 	return userID, nil
 }
 
-func (pgdb *PostgresqlDB) GetUserById(id int64) (*model.UserWithRoleList, error) {
+func (pgdb *PostgresqlDB) GetUserById(id int) (*model.UserWithRoleList, error) {
 	userWithRole := &model.UserWithRoleList{}
 	rows, err := pgdb.DB.Query(context.Background(), `
 		select u.id as uid ,u.username, r.role from users u
@@ -64,10 +64,10 @@ func (pgdb *PostgresqlDB) GetUserById(id int64) (*model.UserWithRoleList, error)
 		inner join roles r on r.id = ur.role_id
 		where u.id = $1
 		`, id)
-	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var role string
 		var username string
@@ -90,13 +90,13 @@ func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, e
 		inner join roles r on r.id = ur.role_id
 		where u.username = $1
 		`, name)
-	defer rows.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		var role string
-		var id int64
+		var id int
 		err = rows.Scan(&id, nil, &role)
 		if err != nil {
 			return nil, err
