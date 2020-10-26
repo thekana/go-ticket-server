@@ -12,7 +12,7 @@ func init() {
 		Forwards: func(db *gorm.DB) error {
 			const sql = `
 				CREATE TABLE reservations ( 
-					reservation_id         BIGSERIAL PRIMARY KEY NOT NULL,
+					id         BIGSERIAL PRIMARY KEY NOT NULL,
 					user_id                BIGINT,
 					event_id               BIGINT,
 					quota                  BIGINT NOT NULL,

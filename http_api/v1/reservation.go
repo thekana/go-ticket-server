@@ -101,7 +101,7 @@ func ViewAllReservations(ctx *app.Context, w http.ResponseWriter, r *http.Reques
 		return err
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(data)
 	return err
 }
@@ -135,7 +135,7 @@ func CancelReservation(ctx *app.Context, w http.ResponseWriter, r *http.Request)
 		return err
 	}
 
-	w.WriteHeader(http.StatusCreated)
+	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(data)
 	return err
 }

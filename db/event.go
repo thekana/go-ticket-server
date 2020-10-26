@@ -138,7 +138,6 @@ func (pgdb *PostgresqlDB) EditEvent(eventId int, newName string, newQuota int, a
 		}
 		return nil, err
 	}
-	fmt.Printf("TESTSETE T ESE%d  %d\n", trueOwnerID, applicantID)
 	if trueOwnerID != applicantID {
 		return nil, errors.New("Not Authorized")
 	}

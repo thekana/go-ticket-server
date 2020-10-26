@@ -1,10 +1,14 @@
 package app
 
-import "ticket-reservation/db/model"
+import (
+	"net/http"
+	customError "ticket-reservation/custom_error"
+	"ticket-reservation/db/model"
+)
 
 type MakeReservationParams struct {
 	AuthToken string `json:"authToken" validate:"required"`
-	EventID   string `json:"eventID" validate:"required"`
+	EventID   int    `json:"eventID" validate:"required"`
 	Amount    int    `json:"amount" validate:"required"`
 }
 
@@ -22,7 +26,7 @@ type ViewReservationsResult struct {
 
 type CancelReservationParams struct {
 	AuthToken     string `json:"authToken" validate:"required"`
-	ReservationID string `json:"reservationId" validate:"required"`
+	ReservationID int    `json:"reservationId" validate:"required"`
 }
 
 type CancelReservationResult struct {
@@ -38,11 +42,19 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 	}
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer})
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
 	ticket, err := ctx.DB.MakeReservation(int(authRes.User.ID), params.EventID, params.Amount)
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	return &MakeReservationResult{Ticket: ticket}, nil
 }
@@ -56,11 +68,19 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 	}
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Organizer, model.Admin})
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
-	tickets := ctx.DB.ViewAllReservations(int(authRes.User.ID))
+	tickets, _ := ctx.DB.ViewAllReservations(int(authRes.User.ID))
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	return &ViewReservationsResult{Tickets: tickets}, nil
 }
@@ -75,12 +95,20 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer})
 
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
 	message, err := ctx.DB.CancelReservation(int(authRes.User.ID), params.ReservationID)
 
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	return &CancelReservationResult{Message: message}, nil
 }
