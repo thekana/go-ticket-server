@@ -14,11 +14,11 @@ func init() {
 			CREATE TABLE events ( 
 				id            BIGSERIAL PRIMARY KEY NOT NULL,
 				name          TEXT NOT NULL,
-				quota         BIGINT NOT NULL,
+				quota         BIGINT NOT NULL CHECK(quota >= sold),
 				owner         BIGINT NOT NULL references users(id),
 				sold		  BIGINT NOT NULL default 0,
-				created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-				updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+				created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+				updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 			  );
 			`
 			err := db.Exec(sql).Error

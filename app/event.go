@@ -45,7 +45,7 @@ type EditEventResult struct {
 
 type DeleteEventParams struct {
 	AuthToken string `json:"authToken" validate:"required"`
-	EventID   string `json:"eventID" validate:"required"`
+	EventID   int    `json:"eventID" validate:"required"`
 }
 
 type DeleteEventResult struct {
@@ -62,11 +62,19 @@ func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, e
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Organizer})
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
 	eventID, err := ctx.DB.CreateEvent(authRes.User.ID, params.Name, params.Quota)
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusNotFound,
+		}
 	}
 	return &CreateEventResult{EventID: eventID}, nil
 }
@@ -80,7 +88,11 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 	}
 	_, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Admin, model.Organizer})
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
 	eventDetail, err := ctx.DB.ViewEventDetail(params.EventID)
 	if err != nil {
@@ -103,7 +115,11 @@ func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEvent
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Admin, model.Organizer})
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
 	var event []*model.EventDetail
 	if authRes.IsOrganizer {
@@ -112,7 +128,11 @@ func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEvent
 		event, err = ctx.DB.ViewAllEvents()
 	}
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	return &ViewAllEventResult{Events: event}, nil
 }
@@ -127,12 +147,20 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Organizer})
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
 
 	record, err := ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, authRes.User.ID)
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	return &EditEventResult{EditedEvent: record}, nil
 }
@@ -147,13 +175,20 @@ func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, e
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Admin, model.Organizer})
 	if err != nil {
-		return nil, err
+		return nil, &customError.AuthorizationError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusForbidden,
+		}
 	}
 
 	result, err := ctx.DB.DeleteEvent(params.EventID, authRes.User.ID, authRes.IsAdmin)
-
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           0,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 
 	return &DeleteEventResult{Message: result}, nil

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
-	"net/http"
-	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
 )
 
@@ -16,7 +14,7 @@ type DBEventInterface interface {
 	ViewAllEvents() ([]*model.EventDetail, error)
 	OrganizerViewAllEvents(uid int) ([]*model.EventDetail, error)
 	EditEvent(eventId int, newName string, newQuota int, applicantID int) (*model.EventDetail, error)
-	DeleteEvent(eventId string, applicantID int, admin bool) (string, error)
+	DeleteEvent(eventId int, applicantID int, admin bool) (string, error)
 }
 
 func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) (int, error) {
@@ -62,7 +60,7 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId int) (*model.EventDetail, erro
 	err = tx.QueryRow(context.Background(), sql, eventId).Scan(&event.EventID, &event.EventName, &event.Quota, &event.OrganizerID, &event.SoldAmount)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, errors.Wrap(err, "event not found")
+			return nil, errors.New("event not found")
 		}
 		return nil, err
 	}
@@ -70,6 +68,7 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId int) (*model.EventDetail, erro
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to commit a transaction")
 	}
+	event.Quota = event.Quota - event.SoldAmount
 	return event, nil
 }
 
@@ -77,7 +76,7 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId int) (*model.EventDetail, erro
 func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 	// For Admin and Customer
 	var events []*model.EventDetail
-	var sql string = `SELECT id, name, quota, owner, sold from events`
+	var sql string = `SELECT id, name, quota, owner, sold from events ORDER BY id ASC`
 	rows, err := pgdb.DB.Query(context.Background(), sql)
 	if err != nil {
 		return nil, err
@@ -89,6 +88,7 @@ func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 		if err != nil {
 			return nil, err
 		}
+		event.Quota = event.Quota - event.SoldAmount
 		events = append(events, &event)
 	}
 	return events, nil
@@ -96,7 +96,7 @@ func (pgdb *PostgresqlDB) ViewAllEvents() ([]*model.EventDetail, error) {
 func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail, error) {
 	// For Organizers
 	var events []*model.EventDetail
-	var sql string = `SELECT id, name, quota, owner, sold from events where owner=$1`
+	var sql string = `SELECT id, name, quota, owner, sold from events where owner=$1 ORDER BY id ASC`
 	rows, err := pgdb.DB.Query(context.Background(), sql, uid)
 	if err != nil {
 		return nil, err
@@ -108,68 +108,87 @@ func (pgdb *PostgresqlDB) OrganizerViewAllEvents(uid int) ([]*model.EventDetail,
 		if err != nil {
 			return nil, err
 		}
+		event.Quota = event.Quota - event.SoldAmount
 		events = append(events, &event)
 	}
 	return events, nil
 }
 func (pgdb *PostgresqlDB) EditEvent(eventId int, newName string, newQuota int, applicantID int) (*model.EventDetail, error) {
-	return nil, nil
-	//eventToEdit, exist := pgdb.MemoryDB.GetEvent(eventId)
-	//pgdb.MemoryDB.resourceLock.TryLock(eventToEdit.ID)
-	//defer pgdb.MemoryDB.resourceLock.Unlock(eventToEdit.ID)
-	//if !exist {
-	//	return nil, &customError.UserError{
-	//		Code:           customError.UnknownError,
-	//		Message:        "Event not found",
-	//		HTTPStatusCode: http.StatusBadRequest,
-	//	}
-	//}
-	//if eventToEdit.OrganizerID != applicantID {
-	//	return nil, &customError.AuthorizationError{
-	//		Code:           customError.Unauthorized,
-	//		Message:        "Not Allowed",
-	//		HTTPStatusCode: http.StatusUnauthorized,
-	//	}
-	//}
-	//eventToEdit.Name = newName
-	//if newQuota < eventToEdit.SoldAmount {
-	//	return nil, &customError.UserError{
-	//		Code:           customError.UnknownError,
-	//		Message:        "New quota must not be less than sold tickets",
-	//		HTTPStatusCode: http.StatusBadRequest,
-	//	}
-	//}
-	//eventToEdit.Quota = newQuota
-	//
-	//return &model.EventDetail{
-	//	EventID:     0,
-	//	OrganizerID: eventToEdit.OrganizerID,
-	//	EventName:   eventToEdit.Name,
-	//	Quota:       eventToEdit.Quota - eventToEdit.SoldAmount,
-	//	SoldAmount:  eventToEdit.SoldAmount,
-	//}, nil
+	event := &model.EventDetail{}
+	var trueOwnerID int
+	tx, err := pgdb.DB.Begin(context.Background())
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to make a transaction")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback(context.Background())
+		}
+	}()
+	_, err = tx.Exec(context.Background(), "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+	if err != nil {
+		tx.Rollback(context.Background())
+		return nil, errors.Wrap(err, "Unable to set transaction isolation level")
+	}
+	var sql string = `select owner from events where id=$1`
+	err = tx.QueryRow(context.Background(), sql, eventId).Scan(&trueOwnerID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, errors.New("event not found")
+		}
+		return nil, err
+	}
+	fmt.Printf("TESTSETE T ESE%d  %d\n", trueOwnerID, applicantID)
+	if trueOwnerID != applicantID {
+		return nil, errors.New("Not Authorized")
+	}
+	sql = `UPDATE events SET quota=$1,name=$2,updated_at=now() where id=$3 returning id, name, quota, owner, sold`
+	err = tx.QueryRow(context.Background(), sql, newQuota, newName, eventId).Scan(&event.EventID, &event.EventName, &event.Quota, &event.OrganizerID, &event.SoldAmount)
+	if err != nil {
+		return nil, err
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to commit a transaction")
+	}
+	event.Quota -= event.SoldAmount
+	return event, nil
 }
-func (pgdb *PostgresqlDB) DeleteEvent(eventId string, applicantID int, admin bool) (string, error) {
-	eventToDelete, exist := pgdb.MemoryDB.GetEvent(eventId)
-	if !exist || eventToDelete.Deleted {
-		return "Event not in system", &customError.UserError{
-			Code:           customError.UnknownError,
-			Message:        "Event not found",
-			HTTPStatusCode: http.StatusBadRequest,
-		}
+func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) (string, error) {
+	tx, err := pgdb.DB.Begin(context.Background())
+	if err != nil {
+		return "", errors.Wrap(err, "Unable to make a transaction")
 	}
-	if admin {
-		pgdb.MemoryDB.DeleteEvent(eventId)
-	} else {
-		if eventToDelete.OrganizerID == applicantID {
-			pgdb.MemoryDB.DeleteEvent(eventId)
-		} else {
-			return "Not allowed", &customError.AuthorizationError{
-				Code:           customError.Unauthorized,
-				Message:        "Not Allowed",
-				HTTPStatusCode: http.StatusUnauthorized,
-			}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback(context.Background())
 		}
+	}()
+	_, err = tx.Exec(context.Background(), "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE")
+	if err != nil {
+		tx.Rollback(context.Background())
+		return "", errors.Wrap(err, "Unable to set transaction isolation level")
 	}
-	return fmt.Sprintf("%s deleted by user %d", eventId, applicantID), nil
+	var sql string = `select owner from events where id=$1`
+	var trueOwnerID int
+	err = tx.QueryRow(context.Background(), sql, eventId).Scan(&trueOwnerID)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", errors.New("event not found")
+		}
+		return "", err
+	}
+	if !admin && (trueOwnerID != applicantID) {
+		return "", errors.New("Not Authorized")
+	}
+	sql = `DELETE from events where id=$1`
+	_, err = tx.Exec(context.Background(), sql, eventId)
+	if err != nil {
+		return "", errors.Wrap(err, "Cannot delete event")
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return "", errors.Wrap(err, "Unable to commit a transaction")
+	}
+	return fmt.Sprintf("Event id %d was deleted by user %d", eventId, applicantID), nil
 }
