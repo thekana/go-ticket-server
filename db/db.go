@@ -82,20 +82,14 @@ func (pgdb *PostgresqlDB) PrintSystem() {
 
 func (pgdb *PostgresqlDB) PopulateSystem() {
 	// Create 1 admin
-	adminID, _ := pgdb.CreateUser("admin")
-	_, _ = pgdb.AssignRoleToUser(adminID, model.Admin)
+	pgdb.CreateUser("admin", model.Admin)
 	// Create 2 orgs
-	org1ID, _ := pgdb.CreateUser("org1")
-	org2ID, _ := pgdb.CreateUser("org2")
-	_, _ = pgdb.AssignRoleToUser(org1ID, model.Organizer)
-	_, _ = pgdb.AssignRoleToUser(org2ID, model.Organizer)
+	org1ID, _ := pgdb.CreateUser("org1", model.Organizer)
+	org2ID, _ := pgdb.CreateUser("org2", model.Organizer)
 	// Create 1 cust
-	cust1ID, _ := pgdb.CreateUser("cust1")
-	cust2ID, _ := pgdb.CreateUser("cust2")
-	cust3ID, _ := pgdb.CreateUser("cust3")
-	_, _ = pgdb.AssignRoleToUser(cust1ID, model.Customer)
-	_, _ = pgdb.AssignRoleToUser(cust2ID, model.Customer)
-	_, _ = pgdb.AssignRoleToUser(cust3ID, model.Customer)
+	pgdb.CreateUser("cust1", model.Customer)
+	pgdb.CreateUser("cust2", model.Customer)
+	pgdb.CreateUser("cust3", model.Customer)
 	// Each org create two events
 	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event1", 10000)
 	_, _ = pgdb.CreateEvent(int(org1ID), "org1 event2", 10000)

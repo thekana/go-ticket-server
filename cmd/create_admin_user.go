@@ -35,12 +35,7 @@ var createAdminUserCmd = &cobra.Command{
 		defer db.Close()
 
 		// Create the user
-		userID, err := db.CreateUser(username)
-		if err != nil {
-			return err
-		}
-
-		_, err = db.AssignRoleToUser(userID, model.Admin)
+		_, err = db.CreateUser(username, model.Admin)
 		if err != nil {
 			return err
 		}

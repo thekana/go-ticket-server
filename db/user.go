@@ -2,6 +2,8 @@ package db
 
 import (
 	"context"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/pkg/errors"
 	"net/http"
 	customError "ticket-reservation/custom_error"
@@ -9,15 +11,24 @@ import (
 )
 
 type DBUserInterface interface {
-	CreateUser(username string) (int64, error)
+	CreateUser(username string, role model.Role) (int64, error)
 	GetUserById(id int64) (*model.UserWithRoleList, error)
-	AssignRoleToUser(id int64, role model.Role) (int64, error)
 	GetUserByName(name string) (*model.UserWithRoleList, error)
+	//AssignRoleToUser(id int64, role model.Role) (int64, error)
 }
 
-func (pgdb *PostgresqlDB) CreateUser(username string) (int64, error) {
+func (pgdb *PostgresqlDB) CreateUser(username string, role model.Role) (int64, error) {
 	var userID int64
-	err := pgdb.DB.QueryRow(context.Background(), `
+	tx, err := pgdb.DB.Begin(context.Background())
+	if err != nil {
+		return 0, errors.Wrap(err, "Unable to make a transaction")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback(context.Background())
+		}
+	}()
+	err = tx.QueryRow(context.Background(), `
 		INSERT INTO users (
 			"username"
 		)
@@ -27,12 +38,21 @@ func (pgdb *PostgresqlDB) CreateUser(username string) (int64, error) {
 		username,
 	).Scan(&userID)
 	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == pgerrcode.UniqueViolation {
+				return 0, errors.New("Duplicate username")
+			}
+		}
 		return 0, errors.Wrap(err, "Unable to create user")
 	}
-	pgdb.MemoryDB.AddUserToSystem(NewUserData(username, int(userID)))
-	//fmt.Printf("-----------------\n")
-	//spew.Dump(pgdb.MemoryDB)
-	//fmt.Printf("-----------------\n")
+	_, err = tx.Exec(context.Background(), `INSERT INTO user_roles(user_id,role_id) values ($1,$2)`, userID, role)
+	if err != nil {
+		return 0, errors.Wrap(err, "Unable to add user role on create")
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return 0, errors.Wrap(err, "Unable to commit a transaction")
+	}
 	return userID, nil
 }
 
@@ -95,14 +115,14 @@ func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, e
 	return userWithRole, nil
 }
 
-func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role model.Role) (int64, error) {
-	var rowId int64
-	err := pgdb.DB.QueryRow(context.Background(), `
-		INSERT INTO user_roles(user_id,role_id) values ($1,$2)
-		RETURNING id
-		`, id, role).Scan(&rowId)
-	if err != nil {
-		return 0, errors.Wrap(err, "Unable to create user")
-	}
-	return rowId, nil
-}
+//func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role model.Role) (int64, error) {
+//	var rowId int64
+//	err := pgdb.DB.QueryRow(context.Background(), `
+//		INSERT INTO user_roles(user_id,role_id) values ($1,$2)
+//		RETURNING id
+//		`, id, role).Scan(&rowId)
+//	if err != nil {
+//		return 0, errors.Wrap(err, "Unable to create user")
+//	}
+//	return rowId, nil
+//}

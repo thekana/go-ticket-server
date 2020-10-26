@@ -84,11 +84,7 @@ func (ctx *Context) Register(params RegisterParams, role model.Role) (*RegisterR
 		logger.Errorf("validateInput error : %s", err)
 		return nil, err
 	}
-	userId, err := ctx.DB.CreateUser(params.Username)
-	if err != nil {
-		return nil, err
-	}
-	_, err = ctx.DB.AssignRoleToUser(userId, role)
+	userId, err := ctx.DB.CreateUser(params.Username, 0)
 	if err != nil {
 		return nil, err
 	}

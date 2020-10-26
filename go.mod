@@ -12,6 +12,8 @@ require (
 	github.com/google/uuid v1.1.2
 	github.com/gorilla/handlers v1.4.2
 	github.com/gorilla/mux v1.7.4
+	github.com/jackc/pgconn v1.6.1
+	github.com/jackc/pgerrcode v0.0.0-20201024163028-a0d42d470451
 	github.com/jackc/pgx/v4 v4.7.1
 	github.com/jinzhu/gorm v1.9.14
 	github.com/pkg/errors v0.9.1
