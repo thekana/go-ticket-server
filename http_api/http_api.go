@@ -224,7 +224,6 @@ func (api *API) handler(f func(*app.Context, http.ResponseWriter, *http.Request)
 					w.WriteHeader(http.StatusBadRequest)
 					_, err = w.Write(data)
 				}
-
 				if err != nil {
 					logger.Errorf("HTTP hanlder validation err: %+v", err)
 				}
@@ -244,7 +243,6 @@ func (api *API) handler(f func(*app.Context, http.ResponseWriter, *http.Request)
 					}
 					_, err = w.Write(data)
 				}
-
 				if err != nil {
 					logger.Errorf("HTTP handler user err: %+v", err)
 				}
@@ -257,7 +255,18 @@ func (api *API) handler(f func(*app.Context, http.ResponseWriter, *http.Request)
 					w.WriteHeader(http.StatusUnauthorized)
 					_, err = w.Write(data)
 				}
-
+				if err != nil {
+					logger.Errorf("%+v", err)
+				}
+			} else if ierr, ok := err.(*customError.InternalError); ok {
+				data, err := json.Marshal(&response.Response{
+					Code:    ierr.Code,
+					Message: ierr.Message,
+				})
+				if err == nil {
+					w.WriteHeader(http.StatusInternalServerError)
+					_, err = w.Write(data)
+				}
 				if err != nil {
 					logger.Errorf("%+v", err)
 				}
@@ -265,7 +274,6 @@ func (api *API) handler(f func(*app.Context, http.ResponseWriter, *http.Request)
 				logger.Errorf("HTTP handler err: %+v", err)
 			}
 		}
-
 		statusCode := w.(*statusCodeRecorder).StatusCode
 		if statusCode == 0 {
 			logger.Errorf("return HTTP status code not set, responding with 500 internal server error")

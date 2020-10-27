@@ -1,6 +1,9 @@
 package app
 
 import (
+	"fmt"
+	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"net/http"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
@@ -48,14 +51,36 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
-	ticket, err := ctx.DB.MakeReservation(int(authRes.User.ID), params.EventID, params.Amount)
+	var ticket *model.ReservationDetail
+	// Retry 10 times
+	for i := 0; i < 10; i++ {
+		ticket, err = ctx.DB.MakeReservation(authRes.User.ID, params.EventID, params.Amount)
+		if err != nil {
+			if pgErr, ok := err.(*pgconn.PgError); ok {
+				if pgErr.Code == pgerrcode.SerializationFailure {
+					fmt.Printf("\n[%d -> retrying user %d reserves event %d for %d]\n", i, authRes.User.ID, params.EventID, params.Amount)
+					continue
+				}
+			}
+		}
+		break
+	}
 	if err != nil {
+		if pgErr, ok := err.(*pgconn.PgError); ok {
+			if pgErr.Code == pgerrcode.SerializationFailure {
+				return nil, &customError.InternalError{
+					Code:    69,
+					Message: "CONCURRENT ERROR",
+				}
+			}
+		}
 		return nil, &customError.UserError{
 			Code:           0,
 			Message:        err.Error(),
 			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}
+
 	return &MakeReservationResult{Ticket: ticket}, nil
 }
 
@@ -74,7 +99,7 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
-	tickets, _ := ctx.DB.ViewAllReservations(int(authRes.User.ID))
+	tickets, err := ctx.DB.ViewAllReservations(int(authRes.User.ID))
 	if err != nil {
 		return nil, &customError.UserError{
 			Code:           0,

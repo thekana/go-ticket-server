@@ -6,7 +6,7 @@ data.quotaLoad([
         body: JSON.stringify({
             "authToken": data.custoken3,
             "eventID": data.eventID1,
-            "amount": 8
+            "amount": 3
         }),
     }, {
         method: 'POST',
