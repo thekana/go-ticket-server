@@ -1,20 +1,27 @@
 package main
 
 import (
-	"github.com/davecgh/go-spew/spew"
-	"ticket-reservation/db"
+	"fmt"
+	"github.com/pkg/errors"
 )
 
 func main() {
-	sys := db.NewSystem()
-	a := db.NewUserData("king", 1)
-	b := db.NewUserData("king2", 2)
-	sys.AddUserToSystem(a)
-	sys.AddUserToSystem(b)
-	spew.Dump(sys)
-	a.Username = "hello"
-	spew.Dump(a)
-	spew.Dump(sys)
-	a = nil
-	spew.Dump(sys)
+	fmt.Println(testdefer().Error())
+}
+
+func testdefer() error {
+	err := errors.New("Start")
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recover")
+		} else if err != nil {
+			fmt.Println("else if")
+			err = errors.Wrap(err, "Got err")
+		} else {
+			fmt.Println("else")
+			err = errors.New("No err")
+		}
+	}()
+	err = nil
+	return errors.New("Static")
 }

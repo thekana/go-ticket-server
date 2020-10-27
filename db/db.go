@@ -63,7 +63,6 @@ func (pgdb *PostgresqlDB) Close() error {
 }
 
 func (pgdb *PostgresqlDB) PrintSystem() {
-	//spew.Dump(pgdb.MemoryDB)
 	for _, elem := range pgdb.MemoryDB.userMap.GetMap() {
 		m := make(map[string]int)
 		count := 0

@@ -14,11 +14,11 @@ type UserWithRoleList struct {
 }
 
 type EventDetail struct {
-	EventID     int    `json:"eventID"`
-	OrganizerID int    `json:"orgID"`
-	EventName   string `json:"eventName"`
-	Quota       int    `json:"quotaRemaining"`
-	SoldAmount  int    `json:"sold"`
+	EventID        int    `json:"eventID"`
+	OrganizerID    int    `json:"orgID"`
+	EventName      string `json:"eventName"`
+	Quota          int    `json:"quota"`
+	RemainingQuota int    `json:"remainingQuota"`
 }
 
 type ReservationDetail struct {

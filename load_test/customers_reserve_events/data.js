@@ -1,19 +1,19 @@
 const autocannon = require('autocannon')
 
 module.exports = {
-    custoken1: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM0NjU2MzYsImlhdCI6MTYwMzQ0NzYzNiwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.zlEwL99gfP6UZZDf1wZ7deu7fmKCK9CRC0grtOGFWLASojyjKr9fRrDAsWiayCaNjfYBpRY1eoGL53cttMQpB8P5c8OPaORdbwhi4TEo1vuv3jKKCutuxV5W5_enngVzYrQQKIxBBEqjEVSy_sjjJlA8-dJp_TdLBJSP9ZhdCD3FtrUvh3eK8BdeuGv0XbGCdfowaI8AgT5btQuqCDq5mOvR1lwpRhH2qRjVkHfCLDAz5_lS795NN-s643ffUOCwHyQTXlWzlMR2LEJMm4ijHcUSVGoGSrRHqc_Gu1CkrawqR9R5TF-EXK3op7lW9PR4qZacry2TVH6kuh4_Hi2yMg",
-    custoken2: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM0NjU2NDYsImlhdCI6MTYwMzQ0NzY0NiwibmFtZSI6ImN1c3QyIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjV9.OLjbsu83oRJYIyXFB7KuYKDwRxDRP5xAbC-qBsU6X9Ft1tZD5e7blmiVwSSfZCol0pGk-fkilZx-XGyUM2cdLecuyP_bdycTW3OavG-ZfoNfGLN8vxPaPT_aE8gBd3afx_-EypHwvaffQG2S8N81BF3opxkHZVtX3yW-dseRgStM_ysFc1JviIgcI39mtqZqweoR_ft3K-HzmqeRiRJvHe_tiFkANAY6Tsl020j583yFC1WCfSa1vIr9ykXTPWEoFYlzItsXOnCz_f-N9gQMY8kblFOhDAUD294WeLH7_VNBOueR22pDLgnwdJWn2iZ5vvCJFC4IeRhsE_rQN6Y0vw",
-    custoken3: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM0NjU2NjQsImlhdCI6MTYwMzQ0NzY2NCwibmFtZSI6ImN1c3QzIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjZ9.y9KvK11qxZXm34XBqn0fiuMcqgTkdX3tyEr-kKfTAoY-CrfKmVfHznhuGPzeFJKSXmX2TM98GxWRh7U1UgHF2YrfkhntlIoalrc-oJ9JvLmOFhLsCmU62sEyh4wkYcG8zQ8vR7_mpoVEZeBsJgYUNj_TsHLBqmL8phNCovZ4UUNwknwTtyzk8BP6q6JfNmlGYEV0ZKUy4hxcIOXj1g2DFPXtltdL-YidmJZ03QcxeKgTYHtDjfOv44StlhJDrh37XFXXb-A09eHm-nURqvkZS1ZO3UAtYW7HVhR9_OtqquTzNJi8CNVy0KfrqvBq1SNyN3zv7WVp3zzsykua0QaJAQ",
-    eventID1: "8370dc97-e6bc-4089-802d-861a02b7effc",
-    eventID2: "c99f9be0-f217-4a44-b548-44b27f67c08c",
-    eventID3: "9acec916-cfd2-4d02-8867-4aa38b402ce8",
-    eventID4: "ca3abd76-ebd5-4cf1-8e89-c771fc357470",
+    custoken1: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM3OTYwNDYsImlhdCI6MTYwMzc3ODA0NiwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.wCgoHLOlVNXxjDG5anmTMT_XxYgn3_PR3y9JYQS-mInZHBjfTRA8LUqNBLK5bRWtvNOmh-x0M65lr458DeAoIrn94B-qQ_8QuG8ci2UYYWM3YSaHTAsuGuS1Es55u9EsWBCqUf_sJ5bY7vinWRbxFaV3nAFHcqjJa36uN8xe25r-YEBQXJCwuuNac-Hf83mEWFIJkDmkPlXHBpNFXZk64zUSoNqTWVFCwIsiN2x4LRekHJYNQZ7eDEFOOhEP4d46_kWGQF0_vB5GpbvAZxBLa3hf99trbzVX0nOzFMVru53j4MyPLEx-r8JmIn1_7CPDbQALmhig3mSPbP_ieDyXQA",
+    custoken2: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM3OTYwNDksImlhdCI6MTYwMzc3ODA0OSwibmFtZSI6ImN1c3QyIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjV9.oLwrz5lG3OxSkJoYQDsflEmBRl0nMjz20ZMRDKad8CvAZ04M0bd2S3B6x-buqB6X1yZkYQTyAceDrXKEHc7oia4eQiLmWJAg8KzVBCnkCUV53ez1n7O2yUUx62YDD8kw6xnJqKELYruFbKUbr0Uk6FA-nt7PmdEKG43o3p8zTJVNCQvoGmRL0_fP3Y-7we3y3_PsLPiVTN1w9rKdZVXOAaBCdnrfVo_TRyZG2atcEFtdnP05pB2aS3v8gVhblu1fSqZ6tq7Mvtuns_lRSFvqCMgxCZcfuowykJpJxiocKVLTRLZ_X7cZqThbJ77V-hLJ9QwA34tGhI7Ku9kpF7b3GA",
+    custoken3: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM3OTYwNTEsImlhdCI6MTYwMzc3ODA1MSwibmFtZSI6ImN1c3QzIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjZ9.XXCAscdKS0HH3bomMPRrw78VsHDvqsWRfUvp4jidRu0zC20TsynAQ_XoNlWeVWgdunsqhKbvT5TP_gDLP650t0lMZG8KQFpmE-Ms0LvMwWiiMbA6H2iOhOpr-krcWm6UIEBtdGudJPxViebggqOA9nGIfI3mn2_pehkEP9Llruv-HiOZlmEN46uxkkOxwkELQtD7LdELPwCe6opgoCzIiy-ZW9jJ5k90zpEd8uYDMTlweu54iFzqT7PYdfXBl_FeGN51AUASUDnTR-Gu1bTxx1YoFH3YHY7z0etZj_RISJnp57qT3UKHshXdW2eW6QfHaSKbqTVkUjjL-pc9SNYPWg",
+    eventID1: 1,
+    eventID2: 2,
+    eventID3: 3,
+    eventID4: 4,
     quotaLoad: function (requestList) {
         const url = 'http://localhost:9092/api/v1/reservation/reserve'
         autocannon({
             url: url,
-            connections: 1000,
-            duration: 5,
+            connections: 30,
+            duration: 10,
             requests: requestList
         }, (err, res) => {
             console.log('finished bench', err, res)

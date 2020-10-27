@@ -11,15 +11,15 @@ func init() {
 		Name:   "Create events table",
 		Forwards: func(db *gorm.DB) error {
 			const sql = `
-			CREATE TABLE events ( 
-				id            BIGSERIAL PRIMARY KEY NOT NULL,
-				name          TEXT NOT NULL,
-				quota         BIGINT NOT NULL CHECK(quota >= sold),
-				owner         BIGINT NOT NULL references users(id),
-				sold		  BIGINT NOT NULL default 0,
-				created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-				updated_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
-			  );
+				CREATE TABLE events ( 
+					id            	BIGSERIAL PRIMARY KEY NOT NULL,
+					name          	TEXT NOT NULL,
+					owner         	BIGINT NOT NULL references users(id),
+					quota         	BIGINT NOT NULL CHECK(quota >= remaining_quota),
+					remaining_quota BIGINT NOT NULL CHECK(remaining_quota >= 0),
+					created_at    	TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+					updated_at    	TIMESTAMPTZ NOT NULL DEFAULT NOW()
+				  );
 			`
 			err := db.Exec(sql).Error
 			return errors.Wrap(err, "unable to create events table")

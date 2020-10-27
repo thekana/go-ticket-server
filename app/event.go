@@ -122,11 +122,7 @@ func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEvent
 		}
 	}
 	var event []*model.EventDetail
-	if authRes.IsOrganizer {
-		event, err = ctx.DB.OrganizerViewAllEvents(authRes.User.ID)
-	} else {
-		event, err = ctx.DB.ViewAllEvents()
-	}
+	event, err = ctx.DB.ViewAllEvents(authRes.IsOrganizer, authRes.User.ID)
 	if err != nil {
 		return nil, &customError.UserError{
 			Code:           0,

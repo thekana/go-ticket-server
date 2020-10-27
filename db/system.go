@@ -18,7 +18,7 @@ var (
 	}
 	QuotaError = &customError.UserError{
 		Code:           0,
-		Message:        "Not Enough Quota",
+		Message:        "Not Enough RemainingQuota",
 		HTTPStatusCode: http.StatusBadRequest,
 	}
 	SoldOutError = &customError.UserError{
