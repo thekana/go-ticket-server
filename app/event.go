@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/jackc/pgerrcode"
 	"net/http"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
@@ -149,9 +150,25 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
+	var record *model.EventDetail
+	// Retry 20 times
+	for i := 0; i < 20; i++ {
+		record, err = ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, authRes.User.ID)
+		if err != nil {
+			if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+				continue
+			}
+		}
+		break
+	}
 
-	record, err := ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, authRes.User.ID)
 	if err != nil {
+		if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+			return nil, &customError.InternalError{
+				Code:    69,
+				Message: "CONCURRENT ERROR",
+			}
+		}
 		return nil, &customError.UserError{
 			Code:           0,
 			Message:        err.Error(),
@@ -177,9 +194,24 @@ func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, e
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
-
-	result, err := ctx.DB.DeleteEvent(params.EventID, authRes.User.ID, authRes.IsAdmin)
+	// Retry 20 times
+	var result string
+	for i := 0; i < 20; i++ {
+		result, err = ctx.DB.DeleteEvent(params.EventID, authRes.User.ID, authRes.IsAdmin)
+		if err != nil {
+			if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+				continue
+			}
+		}
+		break
+	}
 	if err != nil {
+		if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+			return nil, &customError.InternalError{
+				Code:    69,
+				Message: "CONCURRENT ERROR",
+			}
+		}
 		return nil, &customError.UserError{
 			Code:           0,
 			Message:        err.Error(),

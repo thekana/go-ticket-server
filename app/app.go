@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/rsa"
+	"github.com/jackc/pgconn"
 	"io/ioutil"
 	"reflect"
 	"strings"
@@ -150,4 +151,13 @@ func contains(slice []string, item string) bool {
 
 	_, ok := set[item]
 	return ok
+}
+
+func checkPostgresErrorCode(err error, code string) bool {
+	if pgErr, ok := err.(*pgconn.PgError); ok {
+		if pgErr.Code == code {
+			return true
+		}
+	}
+	return false
 }

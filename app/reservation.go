@@ -2,7 +2,6 @@ package app
 
 import (
 	"fmt"
-	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"net/http"
 	customError "ticket-reservation/custom_error"
@@ -56,22 +55,25 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 	for i := 0; i < 10; i++ {
 		ticket, err = ctx.DB.MakeReservation(authRes.User.ID, params.EventID, params.Amount)
 		if err != nil {
-			if pgErr, ok := err.(*pgconn.PgError); ok {
-				if pgErr.Code == pgerrcode.SerializationFailure {
-					fmt.Printf("\n[%d -> retrying user %d reserves event %d for %d]\n", i, authRes.User.ID, params.EventID, params.Amount)
-					continue
-				}
+			if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+				fmt.Printf("\n[%d -> retrying user %d reserves event %d for %d]\n", i, authRes.User.ID, params.EventID, params.Amount)
+				continue
 			}
 		}
 		break
 	}
 	if err != nil {
-		if pgErr, ok := err.(*pgconn.PgError); ok {
-			if pgErr.Code == pgerrcode.SerializationFailure {
-				return nil, &customError.InternalError{
-					Code:    69,
-					Message: "CONCURRENT ERROR",
-				}
+		if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+			return nil, &customError.InternalError{
+				Code:    69,
+				Message: "CONCURRENT ERROR",
+			}
+		}
+		if checkPostgresErrorCode(err, pgerrcode.CheckViolation) {
+			return nil, &customError.UserError{
+				Code:           9,
+				Message:        "Not enough quota",
+				HTTPStatusCode: http.StatusBadRequest,
 			}
 		}
 		return nil, &customError.UserError{
