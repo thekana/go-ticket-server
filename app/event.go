@@ -77,6 +77,7 @@ func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, e
 			HTTPStatusCode: http.StatusNotFound,
 		}
 	}
+	ctx.My.EventQuotaMap.Set(eventID, params.Quota)
 	return &CreateEventResult{EventID: eventID}, nil
 }
 
@@ -175,6 +176,7 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}
+	ctx.My.EventQuotaMap.Set(record.EventID, record.RemainingQuota)
 	return &EditEventResult{EditedEvent: record}, nil
 }
 
@@ -218,6 +220,6 @@ func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, e
 			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}
-
+	//TODO: Delete key from event quota map
 	return &DeleteEventResult{Message: result}, nil
 }

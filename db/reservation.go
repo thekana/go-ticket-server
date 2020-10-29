@@ -12,6 +12,45 @@ type DBReservationInterface interface {
 	MakeReservation(userID int, eventID int, amount int) (*model.ReservationDetail, error)
 	ViewAllReservations(userID int) ([]*model.ReservationDetail, error)
 	CancelReservation(userID int, reservationID int) (string, error)
+	MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationDetail, error)
+}
+
+func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationDetail, error) {
+	var results []*model.ReservationDetail
+	var data model.ReservationDetail
+
+	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
+		IsoLevel: pgx.RepeatableRead,
+	})
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to make a transaction")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			_ = tx.Rollback(context.Background())
+		} else if err != nil {
+			_ = tx.Rollback(context.Background())
+		}
+	}()
+	// Insert batch into reservations
+	for _, job := range jobs {
+		err = tx.QueryRow(context.Background(),
+			`INSERT INTO reservations (user_id,event_id,quota) VALUES ($1,$2,$3) RETURNING id,user_id,event_id,quota;`,
+			job.UserID, job.EventID, job.Amount).Scan(&data.ReservationID, &data.UserID, &data.EventID, &data.Tickets)
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, &data)
+	}
+	// Update batch into events
+	for k, v := range remainingQuotaMap {
+		_, err = tx.Exec(context.Background(), `UPDATE events SET remaining_quota=remaining_quota-$1 WHERE id=$2`, v, k)
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return nil, errors.Wrap(err, "Unable to commit a transaction")
+	}
+	return results, nil
 }
 
 func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID int, amount int) (*model.ReservationDetail, error) {

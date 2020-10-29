@@ -1,7 +1,7 @@
 const autocannon = require('autocannon')
 
 module.exports = {
-    custoken1: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM5NjU2NDIsImlhdCI6MTYwMzk0NzY0MiwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.LhP7iJbtqUGh9CL6vvJkX49hdNUvkELTCfUfvRlPJgN9NhXmx4Q262XZ_WQeZBwxdpLBFnGvWYQi3wZ_cK5FBFMN6s2dgJq8dbZtEOH7ATS62gUp-65c75onzP5PZas1FUz6XDwqHwHgcPyfnsDVrFgnPXdOyv-it-6LfsPbM-KykiUqdw7GlLzXTi51sjTZtslgGsfNBCMhdPCaNe5EfZ2t6H_Mn5uh98BS2M2Nap_u6rePli3EOodJr4E_shsIQ9hXgmdlDHsUQvrlkdZ54Nxy3TOKvx3CH0If88O5rV0Gaps3bSqkxtQFQVUO0W_HTvNamwEWL72l7QMZKrVJ9g",
+    custoken1: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM5ODIyMDAsImlhdCI6MTYwMzk2NDIwMCwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.nKFP9Z8vZYoegdkQ0xRatxLSqZuDINf2vwzvubm1Sqgd4GCYkI9wSnaCu28DwpBbwGvZloz6PBSh--xCYhh8XMSrc83G84PNnpW_1ZhVtS0q6cvtAFiPLMx9hf2vqxYk8gopyT4W_pQfTpZMv4fhpwrHg3lH5UoFl8e6uSEQQDeOq2Nvirr1mS5Dz_V1uXiGIvJsPtPyUJI0s-D9PVQlEJpRgwMK66Roi6CYd2NYGiqk9cZyT1iBa3k_BflyWwVAHpSCMVB9tBiaDjiQlptEpFLSTToMqEz_nun-m2fla_lP96RnLWw2O_JOT4S1-uLDsZARFhL1jrK2qOjTmNh3pg",
     custoken2: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM5NjU2NDQsImlhdCI6MTYwMzk0NzY0NCwibmFtZSI6ImN1c3QyIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjV9.Gn6tEbS_x5WOOIg2uhGf2BHntWIScmO3J15kvDHbpuqgcdFWoP6Ft2xpY4IaMfAivDUFc6mMT_KVcbbBraT-yyEP8tiIjifczU2ovkzhsXqZbgZwtWFFD0kIXTZdZjlbri1aJodkoY_N1RxQ7MENqsdFILsBujnrKWURLoOw54JZSMW7JS4-N3rXW8Qji-G399kbiD8s0QlAIxuHPjVYGI-OiHo4vCz-TZOQ5cidPKysWMmcGjs_ZFMPpG_LF5vfqc0Tz02sap4CE72jKcSGl9PyOBn03-_xbSbyWJUscqNuU7oatVW8fgWFT0GllbTSpxvYwwecr02OVNfbYx5MjQ",
     custoken3: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDM5NjU2NDUsImlhdCI6MTYwMzk0NzY0NSwibmFtZSI6ImN1c3QzIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjZ9.NpXyodF3xqY80cA8hXKZeGDQ9EDkeFXkgJY3EYGgd_HnFUFv9oy0xQgGL6k9Ac5HatzwzUYQ-ktg4SftojUyGZjGNjL2UIY1eo5-_wVSgSUxEcfozulib4jrWXZdW-JlzaGHXEwYmGmdqb7otSRmJVlIFZtTgcZ60d90KTSnI8OQSkqfR29me-CyqKBSe2kINOtyRBTFtQbx-XQzgAfJsdC6dj83d62s9gBdfah_di3UPkWH5dY3Ys1y3-G07vIFvpcGUw_Egfejx4Mm6dxytt_WLjyFq5a0SYeqq5g2HXr_Xu-pEEf4Kb6hqkiDoSA48CN71Yv2JT-lVjs3TFwf5A",
     eventID1: 1,
@@ -12,8 +12,8 @@ module.exports = {
         const url = 'http://localhost:9092/api/v1/reservation/reserve'
         autocannon({
             url: url,
-            connections: 30,
-            duration: 20,
+            connections: 80,
+            duration: 10,
             requests: requestList,
             excludeErrorStats: true
         }, (err, res) => {

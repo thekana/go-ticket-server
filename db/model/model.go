@@ -29,3 +29,9 @@ type ReservationDetail struct {
 	UserID        int
 	Tickets       int
 }
+
+type ReservationRequest struct {
+	EventID int
+	UserID  int
+	Amount  int
+}

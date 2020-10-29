@@ -5,7 +5,6 @@ import (
 	"net/http"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
-	"time"
 )
 
 type MakeReservationParams struct {
@@ -74,11 +73,6 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 	select {
 	case b := <-elem.c:
 		result = b
-	case <-time.After(1 * time.Second):
-		return nil, &customError.InternalError{
-			Code:    100,
-			Message: "Time out",
-		}
 	}
 	if result.err != nil {
 		if checkPostgresErrorCode(result.err, pgerrcode.SerializationFailure) {

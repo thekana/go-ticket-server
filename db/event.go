@@ -25,7 +25,6 @@ func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) 
 	}
 	return eventID, nil
 }
-
 func (pgdb *PostgresqlDB) ViewEventDetail(eventId int) (*model.EventDetail, error) {
 	event := model.EventDetail{}
 	var sql string = `SELECT * from events where id=$1`
@@ -43,7 +42,6 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId int) (*model.EventDetail, erro
 	}
 	return &event, nil
 }
-
 func (pgdb *PostgresqlDB) ViewAllEvents(isOrganizer bool, orgID int) ([]*model.EventDetail, error) {
 	var events []*model.EventDetail
 	var sql = `SELECT * from events ORDER BY id ASC`

@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -9,8 +10,10 @@ import (
 	"github.com/jackc/pgconn"
 	"github.com/pkg/errors"
 	"io/ioutil"
+	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 	"ticket-reservation/db/model"
 	"time"
 
@@ -20,10 +23,29 @@ import (
 	"ticket-reservation/utils"
 )
 
+type RWMap struct {
+	sync.RWMutex
+	m map[int]int
+}
+
+func (r *RWMap) Get(key int) (int, bool) {
+	r.RLock()
+	defer r.RUnlock()
+	item, found := r.m[key]
+	return item, found
+}
+
+func (r *RWMap) Set(key int, item int) {
+	r.Lock()
+	defer r.Unlock()
+	r.m[key] = item
+}
+
 type MyStruct struct {
-	QueueChan chan *ReservationQueueElem
-	Signal    chan struct{}
-	Timer     *time.Ticker
+	QueueChan     chan *ReservationQueueElem
+	Signal        chan struct{}
+	Timer         *time.Ticker
+	EventQuotaMap *RWMap
 }
 
 type App struct {
@@ -36,9 +58,21 @@ type App struct {
 }
 
 var (
-	uni      *ut.UniversalTranslator
-	trans    ut.Translator
-	validate *validator.Validate
+	uni       *ut.UniversalTranslator
+	trans     ut.Translator
+	validate  *validator.Validate
+	BATCHSIZE int           = 50
+	TICKTIME  time.Duration = time.Second * 10
+	m         sync.Mutex
+	ascii     string = `
+ _______  __   __  ___      ___     
+|       ||  | |  ||   |    |   |    
+|    ___||  | |  ||   |    |   |    
+|   |___ |  |_|  ||   |    |   |    
+|    ___||       ||   |___ |   |___ 
+|   |    |       ||       ||       |
+|___|    |_______||_______||_______|
+`
 )
 
 func init() {
@@ -102,31 +136,114 @@ func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
 	}
 
 	app.My = &MyStruct{
-		QueueChan: make(chan *ReservationQueueElem, 100),
+		QueueChan: make(chan *ReservationQueueElem, BATCHSIZE),
 		Signal:    make(chan struct{}),
-		Timer:     time.NewTicker(time.Millisecond * 20),
+		Timer:     time.NewTicker(TICKTIME),
+		EventQuotaMap: &RWMap{
+			m: make(map[int]int),
+		},
 	}
+	// Query events and put in EventQuotaMap
+	events, _ := app.DB.ViewAllEvents(false, 0)
+	if events != nil {
+		for _, e := range events {
+			app.My.EventQuotaMap.Set(e.EventID, e.RemainingQuota)
+		}
+	}
+	fmt.Println(app.My.EventQuotaMap)
 	return app, err
 }
 
-func (app *App) SpinTaskWorker() {
+func (app *App) SpinWorker() {
+	batch := make(chan *ReservationQueueElem, BATCHSIZE)
+	go app.WorkerPerformTask(batch)
 	for {
 		select {
-		case <-app.My.Signal:
 		case <-app.My.Timer.C:
-			app.WorkerPerformTask()
+			fmt.Println(app.My.EventQuotaMap)
+			go app.WorkerPerformBatchTask(batch)
 		}
 	}
 }
 
-// Update Batch Database
-func (app *App) WorkerPerformTask() {
+// To optimize performance we must update DB in batches
+func (app *App) WorkerPerformTask(batch chan *ReservationQueueElem) {
+	// Query the current quotas of all events into memory
 	for task := range app.My.QueueChan {
-		var ticket *model.ReservationDetail
-		ticket, err := app.DB.MakeReservation(task.UserID, task.EventID, task.Amount)
-		task.c <- ReservationQueueResult{
-			ticket: ticket,
-			err:    err,
+		quota, found := app.My.EventQuotaMap.Get(task.EventID)
+		if !found {
+			task.c <- ReservationQueueResult{
+				ticket: nil,
+				err: &customError.UserError{
+					Code:           70,
+					Message:        "Event not found",
+					HTTPStatusCode: http.StatusNotFound,
+				},
+			}
+		}
+		newQuota := quota - task.Amount
+		if newQuota < 0 {
+			task.c <- ReservationQueueResult{
+				ticket: nil,
+				err: &customError.UserError{
+					Code:           10,
+					Message:        "Not Enough Quota",
+					HTTPStatusCode: http.StatusBadRequest,
+				},
+			}
+		}
+		app.My.EventQuotaMap.Set(task.EventID, newQuota)
+		batch <- task
+		if len(batch) >= BATCHSIZE {
+			fmt.Println(ascii)
+			app.WorkerPerformBatchTask(batch)
+		}
+		//select {
+		//case batch <- task:
+		//	fmt.Println("Keep filling")
+		//default:
+		//	fmt.Println(ascii)
+		//	go app.WorkerPerformBatchTask(batch)
+		//}
+	}
+}
+
+func (app *App) WorkerPerformBatchTask(batch chan *ReservationQueueElem) {
+	//m.Lock()
+	//defer m.Unlock()
+	var jobs []*model.ReservationRequest
+	var returnChan []chan ReservationQueueResult
+	deductQuotaMap := make(map[int]int)
+
+	for i := 0; i < BATCHSIZE; i++ {
+		select {
+		// Perform 100 jobs at most
+		case item := <-batch:
+			jobs = append(jobs, &model.ReservationRequest{
+				EventID: item.EventID,
+				UserID:  item.UserID,
+				Amount:  item.Amount,
+			})
+			deductQuotaMap[item.EventID] += item.Amount
+			returnChan = append(returnChan, item.c)
+		case <-time.After(time.Millisecond * 2):
+			// Just in case batch not full
+			break
+		}
+	}
+	results, err := app.DB.MakeReservationBatch(jobs, deductQuotaMap)
+	if err != nil {
+		for _, c := range returnChan {
+			c <- ReservationQueueResult{
+				ticket: nil,
+				err:    err,
+			}
+		}
+	}
+	for i := 0; i < len(returnChan); i++ {
+		returnChan[i] <- ReservationQueueResult{
+			ticket: results[i],
+			err:    nil,
 		}
 	}
 }
