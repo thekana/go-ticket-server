@@ -213,23 +213,16 @@ func (app *App) WorkerPerformBatchTask() {
 	var jobs []*model.ReservationRequest
 	var returnChan []chan ReservationQueueResult
 	deductQuotaMap := make(map[int]int)
-
-	for i := 0; i < BATCHSIZE; i++ {
-		select {
-		// Perform 100 jobs at most
-		case item := <-app.My.Batch:
-			jobs = append(jobs, &model.ReservationRequest{
-				EventID: item.EventID,
-				UserID:  item.UserID,
-				Amount:  item.Amount,
-			})
-			deductQuotaMap[item.EventID] += item.Amount
-			returnChan = append(returnChan, item.c)
-		case <-time.After(time.Millisecond * 1):
-			// Ticker also calls this functions
-			// In case there are only a few jobs left
-			break
-		}
+	size := len(app.My.Batch)
+	for i := 0; i < size; i++ {
+		item := <-app.My.Batch
+		jobs = append(jobs, &model.ReservationRequest{
+			EventID: item.EventID,
+			UserID:  item.UserID,
+			Amount:  item.Amount,
+		})
+		deductQuotaMap[item.EventID] += item.Amount
+		returnChan = append(returnChan, item.c)
 	}
 	results, err := app.DB.MakeReservationBatch(jobs, deductQuotaMap)
 	if err != nil {
