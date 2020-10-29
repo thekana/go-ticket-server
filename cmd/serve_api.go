@@ -64,18 +64,14 @@ var serveAPICmd = &cobra.Command{
 			return err
 		}
 
+		go app.SpinTaskWorker()
+
 		httpAPI, err := http_api.New(app)
 		if err != nil {
 			return err
 		}
 
 		ctx, cancel := context.WithCancel(context.Background())
-
-		go app.SpinTaskWorker()
-		defer func() {
-			fmt.Println("Stop Ticker")
-			app.Timer.Stop()
-		}()
 
 		go func() {
 			var count int

@@ -1,21 +1,18 @@
 package app
 
 import (
-	"container/list"
 	"crypto/rsa"
-	"fmt"
+	"github.com/go-playground/locales/en"
+	ut "github.com/go-playground/universal-translator"
+	"github.com/go-playground/validator/v10"
+	entranslations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/jackc/pgconn"
+	"github.com/pkg/errors"
 	"io/ioutil"
 	"reflect"
 	"strings"
 	"ticket-reservation/db/model"
 	"time"
-
-	"github.com/go-playground/locales/en"
-	ut "github.com/go-playground/universal-translator"
-	"github.com/go-playground/validator/v10"
-	en_translations "github.com/go-playground/validator/v10/translations/en"
-	"github.com/pkg/errors"
 
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db"
@@ -23,15 +20,19 @@ import (
 	"ticket-reservation/utils"
 )
 
+type MyStruct struct {
+	QueueChan chan *ReservationQueueElem
+	Signal    chan struct{}
+	Timer     *time.Ticker
+}
+
 type App struct {
 	Logger                log.Logger
 	Config                *Config
 	TokenSignerPrivateKey *rsa.PrivateKey
 	TokenSignerPublicKey  *rsa.PublicKey
 	DB                    db.DB
-	Queue                 *list.List
-	Signal                chan int
-	Timer                 *time.Ticker
+	My                    *MyStruct
 }
 
 var (
@@ -53,7 +54,7 @@ func init() {
 
 	validate = validator.New()
 
-	if err := en_translations.RegisterDefaultTranslations(validate, translator); err != nil {
+	if err := entranslations.RegisterDefaultTranslations(validate, translator); err != nil {
 		panic(err)
 	}
 
@@ -69,35 +70,6 @@ func init() {
 }
 
 type AppNewOptions struct {
-}
-
-func (app *App) SpinTaskWorker() {
-	for {
-		select {
-		case <-app.Signal:
-			fmt.Println("Clearing queues")
-		case <-app.Timer.C:
-			app.WorkerPerformTask(app.Queue.Len())
-		}
-	}
-}
-
-func (app *App) WorkerPerformTask(item int) {
-	for i := 0; i < item; i++ {
-		var ticket *model.ReservationDetail
-		e := app.Queue.Front()
-		if e == nil {
-			app.Queue.Remove(e)
-			continue
-		}
-		elem := e.Value.(*ReservationQueueElem)
-		ticket, err := app.DB.MakeReservation(elem.UserID, elem.EventID, elem.Amount)
-		elem.c <- ReservationQueueResult{
-			ticket: ticket,
-			err:    err,
-		}
-		app.Queue.Remove(e)
-	}
 }
 
 func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
@@ -129,10 +101,34 @@ func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
 		return nil, err
 	}
 
-	app.Queue = list.New()
-	app.Timer = time.NewTicker(time.Millisecond * 30)
-
+	app.My = &MyStruct{
+		QueueChan: make(chan *ReservationQueueElem, 100),
+		Signal:    make(chan struct{}),
+		Timer:     time.NewTicker(time.Millisecond * 20),
+	}
 	return app, err
+}
+
+func (app *App) SpinTaskWorker() {
+	for {
+		select {
+		case <-app.My.Signal:
+		case <-app.My.Timer.C:
+			app.WorkerPerformTask()
+		}
+	}
+}
+
+// Update Batch Database
+func (app *App) WorkerPerformTask() {
+	for task := range app.My.QueueChan {
+		var ticket *model.ReservationDetail
+		ticket, err := app.DB.MakeReservation(task.UserID, task.EventID, task.Amount)
+		task.c <- ReservationQueueResult{
+			ticket: ticket,
+			err:    err,
+		}
+	}
 }
 
 func (app *App) Close() error {

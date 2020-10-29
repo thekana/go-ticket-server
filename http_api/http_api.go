@@ -185,6 +185,7 @@ func (api *API) handler(f func(*app.Context, http.ResponseWriter, *http.Request)
 		r.Body = http.MaxBytesReader(w, r.Body, 100*1024*1024)
 
 		appCtx := api.App.NewContext().WithRemoteAddress(api.RemoteAddressForRequest(r))
+
 		appCtx = appCtx.WithLogger(appCtx.Logger.WithFields(
 			log.Fields{
 				"request_id": requestID,

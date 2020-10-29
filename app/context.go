@@ -1,9 +1,7 @@
 package app
 
 import (
-	"container/list"
 	"crypto/rsa"
-
 	"ticket-reservation/db"
 	log "ticket-reservation/log"
 )
@@ -15,7 +13,7 @@ type Context struct {
 	TokenSignerPrivateKey *rsa.PrivateKey
 	TokenSignerPublicKey  *rsa.PublicKey
 	DB                    db.DB
-	Queue                 *list.List
+	My                    *MyStruct
 }
 
 func (app *App) NewContext() *Context {
@@ -25,7 +23,7 @@ func (app *App) NewContext() *Context {
 		TokenSignerPrivateKey: app.TokenSignerPrivateKey,
 		TokenSignerPublicKey:  app.TokenSignerPublicKey,
 		DB:                    app.DB,
-		Queue:                 app.Queue,
+		My:                    app.My,
 	}
 }
 

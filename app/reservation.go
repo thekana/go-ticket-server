@@ -68,7 +68,7 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 		Amount:  params.Amount,
 		c:       make(chan ReservationQueueResult, 1),
 	}
-	ctx.Queue.PushBack(elem)
+	ctx.My.QueueChan <- elem
 	var result ReservationQueueResult
 	defer close(elem.c)
 	select {
