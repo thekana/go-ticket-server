@@ -33,7 +33,7 @@ Uses autocannon with config:
 1. `connections: 80`
 2. `duration: 10`
 3. `4 POST requests. Each request reserves 1 ticket from 1 event`
-4. ` excludeErrorStats: true`
+4. `excludeErrorStats: true`
 
 Start by sending a GET request to populate DB (ONCE) with
 - EventID 1 Quota 10000
@@ -49,6 +49,6 @@ P.S. Need tokens because my implementation uses jwtclaims to get user data 🤣
 ## Results
 | Phase    | Requests Sent | Avg Latency     | Avg Throughput     |
 | :-------------| :----------: | :----------: | -----------: |
-|  1 Memory only| |More Stuff   | And Again    |
-| 2 Postgres only| |Put Pipes In | Like this  |
+|  1 Memory only| 9307 | 85.97   | 300800   |
+| 2 Postgres only (with retry) | 713 | 513.71 |10302.21  |
 | 3 Postgres with batch jobs in memory| 4992 | 161.47 | 119737.6  |
