@@ -17,7 +17,7 @@
    docker exec -i ticket_reservation_postgres psql -U postgres -c "create database ticket_reservation"
    ```
 
-3. Create tables and server
+3. Create tables and run server
 
    ```sh
    go run main.go migrate-db
@@ -27,3 +27,28 @@
     ```shell script
     docker exec -ti ticket_reservation_postgres psql -U postgres
     ```
+## Performance Test
+
+Uses autocannon with config:
+1. `connections: 80`
+2. `duration: 10`
+3. `4 POST requests. Each request reserves 1 ticket from 1 event`
+4. ` excludeErrorStats: true`
+
+Start by sending a GET request to populate DB (ONCE) with
+- EventID 1 Quota 10000
+- EventID 2 Quota 10000
+- EventID 3 Quota 10000
+- EventID 4 Quota 10000
+```shell script
+curl localhost:9092/api/v1/pop
+```
+Then run `load_test/cannon.js` with updated customer tokens <br>
+P.S. Need tokens because my implementation uses jwtclaims to get user data 🤣
+
+## Results
+| Phase    | Requests Sent | Avg Latency     | Avg Throughput     |
+| :-------------| :----------: | :----------: | -----------: |
+|  1 Memory only| |More Stuff   | And Again    |
+| 2 Postgres only| |Put Pipes In | Like this  |
+| 3 Postgres with batch jobs in memory| 4992 | 161.47 | 119737.6  |
