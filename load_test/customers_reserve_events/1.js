@@ -5,21 +5,21 @@ data.quotaLoad([
         method: 'POST',
         body: JSON.stringify({
             "authToken": data.custoken1,
-            "eventID": 7,
+            "eventID": data.eventID4,
             "amount": 3
         }),
     }, {
         method: 'POST',
         body: JSON.stringify({
             "authToken": data.custoken1,
-            "eventID": 2,
+            "eventID": data.eventID2,
             "amount": 4
         }),
     }, {
         method: 'POST',
         body: JSON.stringify({
             "authToken": data.custoken1,
-            "eventID": 4,
+            "eventID": data.eventID3,
             "amount": 5
         }),
     },

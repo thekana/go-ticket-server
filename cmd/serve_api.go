@@ -71,6 +71,12 @@ var serveAPICmd = &cobra.Command{
 
 		ctx, cancel := context.WithCancel(context.Background())
 
+		go app.SpinTaskWorker()
+		defer func() {
+			fmt.Println("Stop Ticker")
+			app.Timer.Stop()
+		}()
+
 		go func() {
 			var count int
 			c := make(chan os.Signal, 2)

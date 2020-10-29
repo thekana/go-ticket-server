@@ -1,11 +1,11 @@
 package app
 
 import (
-	"fmt"
 	"github.com/jackc/pgerrcode"
 	"net/http"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
+	"time"
 )
 
 type MakeReservationParams struct {
@@ -35,6 +35,18 @@ type CancelReservationResult struct {
 	Message string `json:"message"`
 }
 
+type ReservationQueueResult struct {
+	ticket *model.ReservationDetail
+	err    error
+}
+
+type ReservationQueueElem struct {
+	UserID  int
+	EventID int
+	Amount  int
+	c       chan ReservationQueueResult
+}
+
 func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservationResult, error) {
 	logger := ctx.getLogger()
 
@@ -50,26 +62,32 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
-	var ticket *model.ReservationDetail
-	// Retry 10 times
-	for i := 0; i < 10; i++ {
-		ticket, err = ctx.DB.MakeReservation(authRes.User.ID, params.EventID, params.Amount)
-		if err != nil {
-			if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
-				fmt.Printf("\n[%d -> retrying user %d reserves event %d for %d]\n", i, authRes.User.ID, params.EventID, params.Amount)
-				continue
-			}
-		}
-		break
+	elem := &ReservationQueueElem{
+		UserID:  authRes.User.ID,
+		EventID: params.EventID,
+		Amount:  params.Amount,
+		c:       make(chan ReservationQueueResult, 1),
 	}
-	if err != nil {
-		if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+	ctx.Queue.PushBack(elem)
+	var result ReservationQueueResult
+	defer close(elem.c)
+	select {
+	case b := <-elem.c:
+		result = b
+	case <-time.After(1 * time.Second):
+		return nil, &customError.InternalError{
+			Code:    100,
+			Message: "Time out",
+		}
+	}
+	if result.err != nil {
+		if checkPostgresErrorCode(result.err, pgerrcode.SerializationFailure) {
 			return nil, &customError.InternalError{
 				Code:    69,
 				Message: "CONCURRENT ERROR",
 			}
 		}
-		if checkPostgresErrorCode(err, pgerrcode.CheckViolation) {
+		if checkPostgresErrorCode(result.err, pgerrcode.CheckViolation) {
 			return nil, &customError.UserError{
 				Code:           9,
 				Message:        "Not enough quota",
@@ -78,12 +96,12 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 		}
 		return nil, &customError.UserError{
 			Code:           0,
-			Message:        err.Error(),
+			Message:        result.err.Error(),
 			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}
 
-	return &MakeReservationResult{Ticket: ticket}, nil
+	return &MakeReservationResult{Ticket: result.ticket}, nil
 }
 
 func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReservationsResult, error) {

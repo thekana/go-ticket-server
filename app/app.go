@@ -1,11 +1,15 @@
 package app
 
 import (
+	"container/list"
 	"crypto/rsa"
+	"fmt"
 	"github.com/jackc/pgconn"
 	"io/ioutil"
 	"reflect"
 	"strings"
+	"ticket-reservation/db/model"
+	"time"
 
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
@@ -25,6 +29,9 @@ type App struct {
 	TokenSignerPrivateKey *rsa.PrivateKey
 	TokenSignerPublicKey  *rsa.PublicKey
 	DB                    db.DB
+	Queue                 *list.List
+	Signal                chan int
+	Timer                 *time.Ticker
 }
 
 var (
@@ -64,6 +71,35 @@ func init() {
 type AppNewOptions struct {
 }
 
+func (app *App) SpinTaskWorker() {
+	for {
+		select {
+		case <-app.Signal:
+			fmt.Println("Clearing queues")
+		case <-app.Timer.C:
+			app.WorkerPerformTask(app.Queue.Len())
+		}
+	}
+}
+
+func (app *App) WorkerPerformTask(item int) {
+	for i := 0; i < item; i++ {
+		var ticket *model.ReservationDetail
+		e := app.Queue.Front()
+		if e == nil {
+			app.Queue.Remove(e)
+			continue
+		}
+		elem := e.Value.(*ReservationQueueElem)
+		ticket, err := app.DB.MakeReservation(elem.UserID, elem.EventID, elem.Amount)
+		elem.c <- ReservationQueueResult{
+			ticket: ticket,
+			err:    err,
+		}
+		app.Queue.Remove(e)
+	}
+}
+
 func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
 	app = &App{
 		Logger: logger,
@@ -92,6 +128,9 @@ func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
 	if err != nil {
 		return nil, err
 	}
+
+	app.Queue = list.New()
+	app.Timer = time.NewTicker(time.Millisecond * 30)
 
 	return app, err
 }
@@ -148,7 +187,6 @@ func contains(slice []string, item string) bool {
 	for _, s := range slice {
 		set[s] = struct{}{}
 	}
-
 	_, ok := set[item]
 	return ok
 }
