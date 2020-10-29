@@ -14,13 +14,12 @@ import (
 	"reflect"
 	"strings"
 	"sync"
-	"ticket-reservation/db/model"
-	"time"
-
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db"
+	"ticket-reservation/db/model"
 	log "ticket-reservation/log"
 	"ticket-reservation/utils"
+	"time"
 )
 
 type RWMap struct {
@@ -46,6 +45,7 @@ type MyStruct struct {
 	Signal        chan struct{}
 	Timer         *time.Ticker
 	EventQuotaMap *RWMap
+	Batch         chan *ReservationQueueElem
 }
 
 type App struct {
@@ -62,9 +62,8 @@ var (
 	trans     ut.Translator
 	validate  *validator.Validate
 	BATCHSIZE int           = 50
-	TICKTIME  time.Duration = time.Second * 10
-	m         sync.Mutex
-	ascii     string = `
+	TICKTIME  time.Duration = time.Millisecond * 100
+	ascii     string        = `
  _______  __   __  ___      ___     
 |       ||  | |  ||   |    |   |    
 |    ___||  | |  ||   |    |   |    
@@ -137,6 +136,7 @@ func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
 
 	app.My = &MyStruct{
 		QueueChan: make(chan *ReservationQueueElem, BATCHSIZE),
+		Batch:     make(chan *ReservationQueueElem, BATCHSIZE),
 		Signal:    make(chan struct{}),
 		Timer:     time.NewTicker(TICKTIME),
 		EventQuotaMap: &RWMap{
@@ -155,20 +155,23 @@ func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
 }
 
 func (app *App) SpinWorker() {
-	batch := make(chan *ReservationQueueElem, BATCHSIZE)
-	go app.WorkerPerformTask(batch)
+	go app.AddTasks()
 	for {
 		select {
 		case <-app.My.Timer.C:
 			fmt.Println(app.My.EventQuotaMap)
-			go app.WorkerPerformBatchTask(batch)
+			// Waiting for a signal from ticker
+			app.WorkerPerformBatchTask()
+		case <-app.My.Signal:
+			fmt.Print(ascii)
+			// Waiting for a signal from AddTasks()
+			app.WorkerPerformBatchTask()
 		}
 	}
 }
 
 // To optimize performance we must update DB in batches
-func (app *App) WorkerPerformTask(batch chan *ReservationQueueElem) {
-	// Query the current quotas of all events into memory
+func (app *App) AddTasks() {
 	for task := range app.My.QueueChan {
 		quota, found := app.My.EventQuotaMap.Get(task.EventID)
 		if !found {
@@ -180,6 +183,8 @@ func (app *App) WorkerPerformTask(batch chan *ReservationQueueElem) {
 					HTTPStatusCode: http.StatusNotFound,
 				},
 			}
+			// Return early and skip this one
+			continue
 		}
 		newQuota := quota - task.Amount
 		if newQuota < 0 {
@@ -191,26 +196,20 @@ func (app *App) WorkerPerformTask(batch chan *ReservationQueueElem) {
 					HTTPStatusCode: http.StatusBadRequest,
 				},
 			}
+			// Return early and skip this one
+			continue
 		}
 		app.My.EventQuotaMap.Set(task.EventID, newQuota)
-		batch <- task
-		if len(batch) >= BATCHSIZE {
-			fmt.Println(ascii)
-			app.WorkerPerformBatchTask(batch)
+		app.My.Batch <- task
+		// When len channel is over a certain amount
+		// Send a signal to perform task
+		if len(app.My.Batch) >= 50 {
+			app.My.Signal <- struct{}{}
 		}
-		//select {
-		//case batch <- task:
-		//	fmt.Println("Keep filling")
-		//default:
-		//	fmt.Println(ascii)
-		//	go app.WorkerPerformBatchTask(batch)
-		//}
 	}
 }
 
-func (app *App) WorkerPerformBatchTask(batch chan *ReservationQueueElem) {
-	//m.Lock()
-	//defer m.Unlock()
+func (app *App) WorkerPerformBatchTask() {
 	var jobs []*model.ReservationRequest
 	var returnChan []chan ReservationQueueResult
 	deductQuotaMap := make(map[int]int)
@@ -218,7 +217,7 @@ func (app *App) WorkerPerformBatchTask(batch chan *ReservationQueueElem) {
 	for i := 0; i < BATCHSIZE; i++ {
 		select {
 		// Perform 100 jobs at most
-		case item := <-batch:
+		case item := <-app.My.Batch:
 			jobs = append(jobs, &model.ReservationRequest{
 				EventID: item.EventID,
 				UserID:  item.UserID,
@@ -226,8 +225,9 @@ func (app *App) WorkerPerformBatchTask(batch chan *ReservationQueueElem) {
 			})
 			deductQuotaMap[item.EventID] += item.Amount
 			returnChan = append(returnChan, item.c)
-		case <-time.After(time.Millisecond * 2):
-			// Just in case batch not full
+		case <-time.After(time.Millisecond * 1):
+			// Ticker also calls this functions
+			// In case there are only a few jobs left
 			break
 		}
 	}
@@ -240,6 +240,10 @@ func (app *App) WorkerPerformBatchTask(batch chan *ReservationQueueElem) {
 			}
 		}
 	}
+	fmt.Println("DEBUG")
+	fmt.Println(len(results))
+	fmt.Println(len(returnChan))
+	fmt.Println("DEBUG")
 	for i := 0; i < len(returnChan); i++ {
 		returnChan[i] <- ReservationQueueResult{
 			ticket: results[i],

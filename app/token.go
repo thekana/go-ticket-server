@@ -32,7 +32,6 @@ func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-		fmt.Printf("%v\n", claims)
 		return true, &claims, nil
 	}
 	return false, nil, errors.New("Invalid access token")

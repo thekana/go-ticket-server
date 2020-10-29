@@ -12,13 +12,12 @@ module.exports = {
         const url = 'http://localhost:9092/api/v1/reservation/reserve'
         autocannon({
             url: url,
-            connections: 80,
-            duration: 10,
+            connections: 80, // matters a lot can't be more than a hundred and less than cut off amount
+            duration: 5,
             requests: requestList,
             excludeErrorStats: true
         }, (err, res) => {
             console.log('finished bench', err, res)
         })
-
     }
 }
