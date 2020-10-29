@@ -14,7 +14,6 @@ type DBUserInterface interface {
 	CreateUser(username string, role model.Role) (int, error)
 	GetUserById(id int) (*model.UserWithRoleList, error)
 	GetUserByName(name string) (*model.UserWithRoleList, error)
-	//AssignRoleToUser(id int64, role model.Role) (int64, error)
 }
 
 func (pgdb *PostgresqlDB) CreateUser(username string, role model.Role) (int, error) {
@@ -114,15 +113,3 @@ func (pgdb *PostgresqlDB) GetUserByName(name string) (*model.UserWithRoleList, e
 	}
 	return userWithRole, nil
 }
-
-//func (pgdb *PostgresqlDB) AssignRoleToUser(id int64, role model.Role) (int64, error) {
-//	var rowId int64
-//	err := pgdb.DB.QueryRow(context.Background(), `
-//		INSERT INTO user_roles(user_id,role_id) values ($1,$2)
-//		RETURNING id
-//		`, id, role).Scan(&rowId)
-//	if err != nil {
-//		return 0, errors.Wrap(err, "Unable to create user")
-//	}
-//	return rowId, nil
-//}

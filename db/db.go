@@ -14,14 +14,12 @@ type DB interface {
 	DBEventInterface
 	DBReservationInterface
 	Close() error
-	PrintSystem()
 	PopulateSystem()
 }
 
 type PostgresqlDB struct {
-	logger   log.Logger
-	DB       *pgxpool.Pool
-	MemoryDB *System
+	logger log.Logger
+	DB     *pgxpool.Pool
 }
 
 func New(config *Config, logger log.Logger) (pgdb *PostgresqlDB, err error) {
@@ -29,7 +27,6 @@ func New(config *Config, logger log.Logger) (pgdb *PostgresqlDB, err error) {
 		logger: logger.WithFields(log.Fields{
 			"module": "db",
 		}),
-		MemoryDB: NewSystem(), // Init memoryDB
 	}
 	connStr := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
@@ -60,23 +57,6 @@ func New(config *Config, logger log.Logger) (pgdb *PostgresqlDB, err error) {
 func (pgdb *PostgresqlDB) Close() error {
 	pgdb.DB.Close()
 	return nil
-}
-
-func (pgdb *PostgresqlDB) PrintSystem() {
-	for _, elem := range pgdb.MemoryDB.userMap.GetMap() {
-		m := make(map[string]int)
-		count := 0
-		for _, res := range elem.(*UserData).Reservations {
-			if !res.Voided {
-				m[res.EventID] += res.Amount
-				count += res.Amount
-			}
-		}
-		fmt.Printf("%s booked %d\n", elem.(*UserData).Username, count)
-		for k, c := range m {
-			fmt.Printf("\t %s --> %d\n", k, c)
-		}
-	}
 }
 
 func (pgdb *PostgresqlDB) PopulateSystem() {

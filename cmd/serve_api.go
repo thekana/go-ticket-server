@@ -59,7 +59,7 @@ var serveAPICmd = &cobra.Command{
 			return err
 		}
 
-		app, err := app.New(logger, nil)
+		app, err := app.New(logger)
 		if err != nil {
 			return err
 		}

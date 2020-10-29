@@ -57,13 +57,10 @@ type App struct {
 	My                    *MyStruct
 }
 
-var (
-	uni       *ut.UniversalTranslator
-	trans     ut.Translator
-	validate  *validator.Validate
-	BATCHSIZE int           = 50
-	TICKTIME  time.Duration = time.Millisecond * 100
-	ascii     string        = `
+const (
+	BatchSize int           = 50
+	TickTime  time.Duration = time.Millisecond * 100
+	Full      string        = `
  _______  __   __  ___      ___     
 |       ||  | |  ||   |    |   |    
 |    ___||  | |  ||   |    |   |    
@@ -72,6 +69,12 @@ var (
 |   |    |       ||       ||       |
 |___|    |_______||_______||_______|
 `
+)
+
+var (
+	uni      *ut.UniversalTranslator
+	trans    ut.Translator
+	validate *validator.Validate
 )
 
 func init() {
@@ -102,10 +105,7 @@ func init() {
 	trans = translator
 }
 
-type AppNewOptions struct {
-}
-
-func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
+func New(logger log.Logger) (app *App, err error) {
 	app = &App{
 		Logger: logger,
 	}
@@ -135,10 +135,10 @@ func New(logger log.Logger, options *AppNewOptions) (app *App, err error) {
 	}
 
 	app.My = &MyStruct{
-		QueueChan: make(chan *ReservationQueueElem, BATCHSIZE),
-		Batch:     make(chan *ReservationQueueElem, BATCHSIZE),
+		QueueChan: make(chan *ReservationQueueElem, BatchSize),
+		Batch:     make(chan *ReservationQueueElem, BatchSize),
 		Signal:    make(chan struct{}),
-		Timer:     time.NewTicker(TICKTIME),
+		Timer:     time.NewTicker(TickTime),
 		EventQuotaMap: &RWMap{
 			m: make(map[int]int),
 		},
@@ -163,7 +163,7 @@ func (app *App) SpinWorker() {
 			// Waiting for a signal from ticker
 			app.WorkerPerformBatchTask()
 		case <-app.My.Signal:
-			fmt.Print(ascii)
+			fmt.Print(Full)
 			// Waiting for a signal from AddTasks()
 			app.WorkerPerformBatchTask()
 		}
@@ -233,10 +233,6 @@ func (app *App) WorkerPerformBatchTask() {
 			}
 		}
 	}
-	fmt.Println("DEBUG")
-	fmt.Println(len(results))
-	fmt.Println(len(returnChan))
-	fmt.Println("DEBUG")
 	for i := 0; i < len(returnChan); i++ {
 		returnChan[i] <- ReservationQueueResult{
 			ticket: results[i],
@@ -290,15 +286,6 @@ func validateInput(input interface{}) *customError.ValidationError {
 
 type RequesterMetadata struct {
 	Token string `json:"token" validate:"required,min=1"`
-}
-
-func contains(slice []string, item string) bool {
-	set := make(map[string]struct{}, len(slice))
-	for _, s := range slice {
-		set[s] = struct{}{}
-	}
-	_, ok := set[item]
-	return ok
 }
 
 func checkPostgresErrorCode(err error, code string) bool {
