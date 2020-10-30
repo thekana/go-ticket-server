@@ -1,4 +1,38 @@
-# Ticket Reservation (Server)
+# Event Ticket Reservation System
+
+Back-end
+
+## Objectives:
+- [Main] Learn and familiarize with Go programming language
+- [Main] Concurrency in practice (with and w/o database features help)
+- Pinpoint possible limitations in each implementation phase’s design
+- Design for optimal performance (where to store data and in what form it should be stored)
+
+## Functional Requirements:
+1. User System Functionalities
+    - [x] Register / Sign-up
+    - [x] Login
+    - [x] User Roles
+    - [x] Admin
+    - [x] Event Organizer
+    - [x] Customer
+2. Event Management Functionalities
+    - [x] Create/View/Edit/Delete Event
+    * Required Properties
+    - [x] Event Name
+    - [x] Ticket Quota/Limit
+- [x] Admins can view and delete all events in the system
+- [x] Event Organizers can create/view/edit/delete their own events
+- [x] Customers can view all events and are able to make reservation(s) on any event. (Customers can reserve more than 1 ticket per request.)
+- [x] Tickets can only be sold if there’s quota left or have not reached their limits
+- [x] Customers are able to cancel their reservations
+- [x] Event Organizers can see total ticket reserved / remaining ticket quota
+
+Design and implement a (backend) service with HTTP APIs serving the above mentioned functionalities using Go programming language
+
+#### Phase 1 - Without using persistence (database). Store all data in the program's memory.
+#### Phase 2 - Use persistence (relational database) (e.g. PostgreSQL) to store quota (naive implementation)
+#### Phase 3 - Optimize and/or redesign for performance
 
 ## Prerequisites
 
