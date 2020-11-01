@@ -2,7 +2,6 @@ package app
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -150,7 +149,7 @@ func New(logger log.Logger) (app *App, err error) {
 			app.My.EventQuotaMap.Set(e.EventID, e.RemainingQuota)
 		}
 	}
-	fmt.Println(app.My.EventQuotaMap)
+	// fmt.Println(app.My.EventQuotaMap)
 	return app, err
 }
 
@@ -163,7 +162,7 @@ func (app *App) SpinWorker() {
 			// Waiting for a signal from ticker
 			app.WorkerPerformBatchTask()
 		case <-app.My.Signal:
-			fmt.Print(Full)
+			// fmt.Print(Full)
 			// Waiting for a signal from AddTasks()
 			app.WorkerPerformBatchTask()
 		}
