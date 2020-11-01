@@ -159,7 +159,7 @@ func (app *App) SpinWorker() {
 	for {
 		select {
 		case <-app.My.Timer.C:
-			fmt.Println(app.My.EventQuotaMap)
+			// fmt.Println(app.My.EventQuotaMap)
 			// Waiting for a signal from ticker
 			app.WorkerPerformBatchTask()
 		case <-app.My.Signal:
