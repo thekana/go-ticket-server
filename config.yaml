@@ -4,7 +4,7 @@ Log:
   JSON: false
 
 PostgreSQL:
-  DBHost: 'localhost'
+  DBHost: 'host.docker.internal'
   DBPort: '5432'
   DBUsername: 'postgres'
   DBPassword: 'postgres'
