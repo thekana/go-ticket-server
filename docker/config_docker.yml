@@ -4,7 +4,7 @@ Log:
   JSON: false
 
 PostgreSQL:
-  DBHost: 'localhost'
+  DBHost: 'postgres'
   DBPort: '5432'
   DBUsername: 'postgres'
   DBPassword: 'postgres'
@@ -15,8 +15,8 @@ API:
   HTTPServerPort: 9092
   # HTTPS: false
 
-TokenSignerPrivateKeyPath: "./_dev_server_keys/auth_token.pem"
-TokenSignerPublicKeyPath: "./_dev_server_keys/auth_token.pub.pem"
+TokenSignerPrivateKeyPath: "./server_keys/auth_token.pem"
+TokenSignerPublicKeyPath: "./server_keys/auth_token.pub.pem"
 
 Prometheus:
   Enable: true

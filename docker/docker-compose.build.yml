@@ -1,0 +1,10 @@
+version: '3.4'
+services:
+  go-server:
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+      labels:
+        build.commit: ${BUILD_COMMIT}
+        build.date: ${BUILD_DATE}
+    image: ticket-reservation:${DOCKER_TAG:-latest}

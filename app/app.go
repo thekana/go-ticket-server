@@ -2,11 +2,13 @@ package app
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	entranslations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/jackc/pgconn"
+	"github.com/jackc/pgerrcode"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
@@ -143,13 +145,18 @@ func New(logger log.Logger) (app *App, err error) {
 		},
 	}
 	// Query events and put in EventQuotaMap
-	events, _ := app.DB.ViewAllEvents(false, 0)
+	fmt.Println("Loading event quotas to memory")
+	events, err := app.DB.ViewAllEvents(false, 0)
+	if checkPostgresErrorCode(err, pgerrcode.UndefinedTable) {
+		fmt.Println("Retrying")
+		events, err = app.DB.ViewAllEvents(false, 0)
+	}
 	if events != nil {
 		for _, e := range events {
 			app.My.EventQuotaMap.Set(e.EventID, e.RemainingQuota)
 		}
 	}
-	// fmt.Println(app.My.EventQuotaMap)
+	fmt.Println("Loaded event quotas to memory")
 	return app, err
 }
 

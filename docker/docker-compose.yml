@@ -1,0 +1,58 @@
+version: '3.4'
+
+services:
+  go-server:
+    image: ticket-reservation:latest
+    volumes:
+      - ./config_docker.yml:/config.yaml:ro
+      - ../_dev_server_keys:/server_keys:ro
+    entrypoint:
+      [
+        '/wait-for-it.sh',
+        'postgres:5432',
+        '--',
+        '/ticket-reservation',
+        '--config=/config.yaml',
+        'serve-api',
+      ]
+    ports:
+      - 9092:9092
+    depends_on:
+      - postgres
+      - db-init
+    networks:
+      - ticket-reservation
+    restart: unless-stopped
+  postgres:
+    image: postgres:12-alpine
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ticket_reservation}
+    security_opt:
+      - no-new-privileges
+    ports:
+      - 5432:${POSTGRES_PORT:-5432}
+    networks:
+      - ticket-reservation
+    restart: unless-stopped
+  db-init:
+    image: ticket-reservation:latest
+    volumes:
+      - ./config_docker.yml:/config.yaml:ro
+      - ../_dev_server_keys:/server_keys:ro
+    entrypoint:
+      [
+          '/wait-for-it.sh',
+          'postgres:5432',
+          '--',
+          '/ticket-reservation',
+          '--config=/config.yaml',
+          'migrate-db',
+      ]
+    depends_on:
+      - postgres
+    networks:
+      - ticket-reservation
+    restart: on-failure
+networks:
+  ticket-reservation:
