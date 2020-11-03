@@ -8,7 +8,7 @@ data = {
 }
 
 function start() {
-    const url = 'localhost:8080/api/v1/reservation/reserve'
+    const url = '54.251.152.89/api/v1/reservation/reserve'
     autocannon({
         url: url,
         connections: 80, // matters a lot can't be more than a hundred and less than cut off amount

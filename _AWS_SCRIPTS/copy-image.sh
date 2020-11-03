@@ -1,7 +1,12 @@
 #!/bin/sh
-if [ $# -eq 0 ]
+if [ -z "$1" ]
   then
-  echo "Required path to key"
+  echo "Require path to key"
   exit 1
 fi
-docker save ticket-reservation | bzip2 | pv | ssh -i $1 ec2-user@ec2-52-77-231-100.ap-southeast-1.compute.amazonaws.com 'bunzip2 | docker load'
+if [ -z "$2" ]
+  then
+  echo "Require user@host"
+  exit 1
+fi
+docker save ticket-reservation | bzip2 | pv | ssh -i $1 $2 'bunzip2 | docker load'

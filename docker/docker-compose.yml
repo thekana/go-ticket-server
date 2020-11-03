@@ -58,9 +58,9 @@ services:
     image: nginx:latest
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - ../nginx/digital_clock_web:/server/web
     ports:
       - 80:80
-      - 443:443
     networks:
       - ticket-reservation
     depends_on:
