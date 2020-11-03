@@ -1,22 +1,46 @@
 version: '3.4'
 
 services:
-  go-server:
+  go-server-1:
     image: ticket-reservation:latest
+    container_name: go_server_1
     volumes:
       - ./config_docker.yml:/config.yaml:ro
       - ../_dev_server_keys:/server_keys:ro
     entrypoint:
       [
-        '/wait-for-it.sh',
-        'postgres:5432',
-        '--',
-        '/ticket-reservation',
-        '--config=/config.yaml',
-        'serve-api',
+          '/wait-for-it.sh',
+          'postgres:5432',
+          '--',
+          '/ticket-reservation',
+          '--config=/config.yaml',
+          'serve-api',
       ]
     ports:
       - 9092:9092
+    depends_on:
+      - postgres
+      - db-init
+    networks:
+      - ticket-reservation
+    restart: unless-stopped
+  go-server-2:
+    image: ticket-reservation:latest
+    container_name: go_server_2
+    volumes:
+      - ./config_docker_2.yml:/config_2.yaml:ro
+      - ../_dev_server_keys:/server_keys:ro
+    entrypoint:
+      [
+          '/wait-for-it.sh',
+          'postgres:5432',
+          '--',
+          '/ticket-reservation',
+          '--config=/config_2.yaml',
+          'serve-api',
+      ]
+    ports:
+      - 9093:9093
     depends_on:
       - postgres
       - db-init

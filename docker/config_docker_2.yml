@@ -1,0 +1,23 @@
+Log:
+  Level: debug
+  Color: true
+  JSON: false
+
+PostgreSQL:
+  DBHost: 'postgres'
+  DBPort: '5432'
+  DBUsername: 'postgres'
+  DBPassword: 'postgres'
+  DBName: 'ticket_reservation'
+  MaxOpenConns: 100
+
+API:
+  HTTPServerPort: 9093
+  # HTTPS: false
+
+TokenSignerPrivateKeyPath: "./server_keys/auth_token.pem"
+TokenSignerPublicKeyPath: "./server_keys/auth_token.pub.pem"
+
+Prometheus:
+  Enable: true
+  MetricsHTTPPort: 24000
