@@ -8,9 +8,9 @@ import (
 )
 
 type MakeReservationParams struct {
-	AuthToken string `json:"authToken" validate:"required"`
-	EventID   int    `json:"eventID" validate:"required"`
-	Amount    int    `json:"amount" validate:"required"`
+	AuthToken string
+	EventID   int `json:"eventID" validate:"required"`
+	Amount    int `json:"amount" validate:"required"`
 }
 
 type MakeReservationResult struct {
@@ -18,7 +18,7 @@ type MakeReservationResult struct {
 }
 
 type ViewReservationsParams struct {
-	AuthToken string `json:"authToken" validate:"required"`
+	AuthToken string
 }
 
 type ViewReservationsResult struct {
@@ -26,8 +26,8 @@ type ViewReservationsResult struct {
 }
 
 type CancelReservationParams struct {
-	AuthToken     string `json:"authToken" validate:"required"`
-	ReservationID int    `json:"reservationId" validate:"required"`
+	AuthToken     string
+	ReservationID int `json:"reservationId" validate:"required"`
 }
 
 type CancelReservationResult struct {

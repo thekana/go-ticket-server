@@ -27,7 +27,7 @@ type LoginResult struct {
 
 // GetLoggedInInfoParams is just here to check if token is working
 type GetLoggedInInfoParams struct {
-	AuthToken string `json:"authToken"`
+	AuthToken string
 }
 
 // GetLoggedInInfoResult is

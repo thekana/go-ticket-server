@@ -12,19 +12,19 @@ import (
 
 var ReservationRoutes = routes.Routes{
 	routes.Route{
-		Name:        "Make Reservation",
+		Name:        "Make a reservation",
 		Path:        "/reserve",
 		Method:      "POST",
 		HandlerFunc: Reserve,
 	},
 	routes.Route{
-		Name:        "Make Reservation",
+		Name:        "Users view their reservations",
 		Path:        "/view",
-		Method:      "POST",
+		Method:      "GET",
 		HandlerFunc: ViewAllReservations,
 	},
 	routes.Route{
-		Name:        "Cancel Reservation",
+		Name:        "Cancel a reservation",
 		Path:        "/cancel",
 		Method:      "POST",
 		HandlerFunc: CancelReservation,
@@ -40,7 +40,11 @@ func init() {
 
 func Reserve(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.MakeReservationParams
-
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		return err
+	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -74,20 +78,12 @@ func Reserve(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 
 func ViewAllReservations(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.ViewReservationsParams
-
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(body, &input); err != nil {
-		return &customError.UserError{
-			Code:           customError.InvalidJSONString,
-			Message:        "Invalid JSON string",
-			HTTPStatusCode: http.StatusBadRequest,
-		}
-	}
 	resData, err := ctx.ViewReservations(input)
 	if err != nil {
 		return err
@@ -108,6 +104,11 @@ func ViewAllReservations(ctx *app.Context, w http.ResponseWriter, r *http.Reques
 
 func CancelReservation(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.CancelReservationParams
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		return err
+	}
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
