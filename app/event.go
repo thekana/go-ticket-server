@@ -8,7 +8,7 @@ import (
 )
 
 type CreateEventParams struct {
-	AuthToken string `json:"authToken" validate:"required"`
+	AuthToken string
 	Name      string `json:"eventName" validate:"required"`
 	Quota     int    `json:"quota" validate:"required"`
 }
@@ -18,8 +18,8 @@ type CreateEventResult struct {
 }
 
 type ViewEventParams struct {
-	AuthToken string `json:"authToken" validate:"required"`
-	EventID   int    `json:"eventID" validate:"required"`
+	AuthToken string
+	EventID   int `json:"eventID" validate:"required"`
 }
 
 type ViewEventResult struct {
@@ -27,14 +27,14 @@ type ViewEventResult struct {
 }
 
 type ViewAllEventParams struct {
-	AuthToken string `json:"authToken" validate:"required"`
+	AuthToken string
 }
 type ViewAllEventResult struct {
 	Events interface{} `json:"events"`
 }
 
 type EditEventParams struct {
-	AuthToken    string `json:"authToken" validate:"required"`
+	AuthToken    string
 	EventID      int    `json:"eventID" validate:"required"`
 	NewEventName string `json:"newEventName" validate:"required"`
 	NewQuota     int    `json:"newQuota" validate:"required"`
@@ -45,8 +45,8 @@ type EditEventResult struct {
 }
 
 type DeleteEventParams struct {
-	AuthToken string `json:"authToken" validate:"required"`
-	EventID   int    `json:"eventID" validate:"required"`
+	AuthToken string
+	EventID   int `json:"eventID" validate:"required"`
 }
 
 type DeleteEventResult struct {

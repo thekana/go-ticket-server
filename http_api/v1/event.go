@@ -21,7 +21,7 @@ var EventRoutes = routes.Routes{
 	routes.Route{
 		Name:        "View all event",
 		Path:        "/all",
-		Method:      "POST",
+		Method:      "GET",
 		HandlerFunc: ViewAllEvents,
 	},
 	routes.Route{
@@ -53,6 +53,11 @@ func init() {
 
 func CreateEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.CreateEventParams
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		return err
+	}
 
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
@@ -87,19 +92,12 @@ func CreateEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) error
 
 func ViewAllEvents(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.ViewAllEventParams
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
 	if err != nil {
 		return err
 	}
 
-	if err := json.Unmarshal(body, &input); err != nil {
-		return &customError.UserError{
-			Code:           customError.InvalidJSONString,
-			Message:        "Invalid JSON string",
-			HTTPStatusCode: http.StatusBadRequest,
-		}
-	}
 	resData, err := ctx.GetAllEventDetails(input)
 	if err != nil {
 		return err
@@ -120,6 +118,11 @@ func ViewAllEvents(ctx *app.Context, w http.ResponseWriter, r *http.Request) err
 
 func ViewOneEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.ViewEventParams
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		return err
+	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -153,6 +156,11 @@ func ViewOneEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) erro
 
 func EditEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.EditEventParams
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		return err
+	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -186,7 +194,11 @@ func EditEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 
 func DeleteEvent(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.DeleteEventParams
-
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
+	if err != nil {
+		return err
+	}
 	defer r.Body.Close()
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
