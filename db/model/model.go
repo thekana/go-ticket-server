@@ -30,6 +30,13 @@ type ReservationDetail struct {
 	Tickets       int
 }
 
+type ReservationTicket struct {
+	ReservationID int
+	EventID       int
+	UserID        int
+	Tickets       int
+}
+
 type ReservationRequest struct {
 	EventID int
 	UserID  int

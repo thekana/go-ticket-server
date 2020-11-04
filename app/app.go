@@ -17,7 +17,7 @@ import (
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db"
 	"ticket-reservation/db/model"
-	log "ticket-reservation/log"
+	"ticket-reservation/log"
 	"ticket-reservation/utils"
 	"time"
 )
@@ -58,9 +58,9 @@ type App struct {
 }
 
 const (
-	BatchSize int           = 50
-	TickTime  time.Duration = time.Millisecond * 100
-	Full      string        = `
+	BatchSize int    = 50
+	TickTime         = time.Millisecond * 100
+	Full      string = `
  _______  __   __  ___      ___     
 |       ||  | |  ||   |    |   |    
 |    ___||  | |  ||   |    |   |    

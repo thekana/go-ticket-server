@@ -9,15 +9,15 @@ import (
 )
 
 type DBReservationInterface interface {
-	MakeReservation(userID int, eventID int, amount int) (*model.ReservationDetail, error)
+	MakeReservation(userID int, eventID int, amount int) (*model.ReservationTicket, error)
 	ViewAllReservations(userID int) ([]*model.ReservationDetail, error)
 	CancelReservation(userID int, reservationID int) (string, error)
-	MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationDetail, error)
+	MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationTicket, error)
 }
 
-func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationDetail, error) {
-	var results []*model.ReservationDetail
-	var data model.ReservationDetail
+func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationTicket, error) {
+	var results []*model.ReservationTicket
+	var data model.ReservationTicket
 
 	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead,
@@ -53,8 +53,8 @@ func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest,
 	return results, nil
 }
 
-func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID int, amount int) (*model.ReservationDetail, error) {
-	var res model.ReservationDetail
+func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID int, amount int) (*model.ReservationTicket, error) {
+	var res model.ReservationTicket
 	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead,
 	})
@@ -76,7 +76,7 @@ func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID int, amount int) (
 	}
 	// Deduct quota
 	sql = `UPDATE events SET remaining_quota=remaining_quota-$1 WHERE id=$2 RETURNING name, owner`
-	err = tx.QueryRow(context.Background(), sql, amount, eventID).Scan(&res.EventName, &res.OrganizerID)
+	_, err = tx.Exec(context.Background(), sql, amount, eventID)
 	if err != nil {
 		return nil, err
 	}

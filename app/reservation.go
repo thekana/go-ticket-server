@@ -14,7 +14,7 @@ type MakeReservationParams struct {
 }
 
 type MakeReservationResult struct {
-	Ticket *model.ReservationDetail `json:"ticket"`
+	Ticket *model.ReservationTicket `json:"ticket"`
 }
 
 type ViewReservationsParams struct {
@@ -35,7 +35,7 @@ type CancelReservationResult struct {
 }
 
 type ReservationQueueResult struct {
-	ticket *model.ReservationDetail
+	ticket *model.ReservationTicket
 	err    error
 }
 
@@ -113,7 +113,7 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
-	tickets, err := ctx.DB.ViewAllReservations(int(authRes.User.ID))
+	tickets, err := ctx.DB.ViewAllReservations(authRes.User.ID)
 	if err != nil {
 		return nil, &customError.UserError{
 			Code:           0,
@@ -140,7 +140,7 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
-	message, err := ctx.DB.CancelReservation(int(authRes.User.ID), params.ReservationID)
+	message, err := ctx.DB.CancelReservation(authRes.User.ID, params.ReservationID)
 
 	if err != nil {
 		return nil, &customError.UserError{
