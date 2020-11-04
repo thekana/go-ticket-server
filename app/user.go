@@ -27,13 +27,12 @@ type LoginResult struct {
 
 // GetLoggedInInfoParams is just here to check if token is working
 type GetLoggedInInfoParams struct {
-	AuthToken string `json:"authToken" validate:"required"`
+	AuthToken string `json:"authToken"`
 }
 
 // GetLoggedInInfoResult is
 type GetLoggedInInfoResult struct {
-	UserID int         `json:"userId"`
-	Data   interface{} `json:"data"`
+	Data interface{} `json:"data"`
 }
 
 // GetLoggedInInfo checks validation for now
@@ -50,8 +49,7 @@ func (ctx *Context) GetLoggedInInfo(params GetLoggedInInfoParams) (*GetLoggedInI
 		return nil, err
 	}
 	return &GetLoggedInInfoResult{
-		UserID: 0,
-		Data:   claims,
+		Data: claims,
 	}, nil
 }
 

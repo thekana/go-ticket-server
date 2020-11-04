@@ -30,7 +30,7 @@ var AuthRoutes = routes.Routes{
 	routes.Route{
 		Name:        "Check",
 		Path:        "/check",
-		Method:      "POST",
+		Method:      "GET",
 		HandlerFunc: GetLoggedInInfo,
 	},
 }
@@ -44,21 +44,11 @@ func init() {
 
 func GetLoggedInInfo(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.GetLoggedInInfoParams
-
-	defer r.Body.Close()
-	body, err := ioutil.ReadAll(r.Body)
+	var err error
+	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
 	if err != nil {
 		return err
 	}
-
-	if err := json.Unmarshal(body, &input); err != nil {
-		return &customError.UserError{
-			Code:           customError.InvalidJSONString,
-			Message:        "Invalid JSON string",
-			HTTPStatusCode: http.StatusBadRequest,
-		}
-	}
-
 	resData, err := ctx.GetLoggedInInfo(input)
 	if err != nil {
 		return err
@@ -67,7 +57,7 @@ func GetLoggedInInfo(ctx *app.Context, w http.ResponseWriter, r *http.Request) e
 	data, err := json.Marshal(&response.Response{
 		Code:    0,
 		Message: "",
-		Data:    resData,
+		Data:    resData.Data,
 	})
 	if err != nil {
 		return err

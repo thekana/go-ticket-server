@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
+	"ticket-reservation/custom_error"
 	"time"
 )
 
@@ -28,13 +29,19 @@ func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error
 				}
 			}
 		}
-		return false, nil, errors.Wrap(err, "Cannot parse access token")
+		return false, nil, &custom_error.ValidationError{
+			Code:    custom_error.InvalidAuthToken,
+			Message: "Cannot parse access token" + err.Error(),
+		}
 	}
 
 	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 		return true, &claims, nil
 	}
-	return false, nil, errors.New("Invalid access token")
+	return false, nil, &custom_error.ValidationError{
+		Code:    custom_error.InvalidAuthToken,
+		Message: "Invalid token",
+	}
 }
 
 func (ctx *Context) createToken(username string, userID int, roles []string) (string, error) {
