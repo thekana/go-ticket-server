@@ -28,8 +28,8 @@ services:
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       POSTGRES_DB: ${POSTGRES_DB:-ticket_reservation}
-    volumes:
-      - ../datadir:/var/lib/postgresql/data # for data persistence
+    #volumes:
+     # - ../datadir:/var/lib/postgresql/data # for data persistence
     security_opt:
       - no-new-privileges
     ports:
@@ -71,5 +71,13 @@ services:
     depends_on:
       - api
     restart: always
+  redis:
+    image: redis:6-alpine
+    security_opt:
+      - no-new-privileges
+    ports:
+      - 6379:${REDIS_PORT:-6379}
+    networks:
+      - ticket-reservation
 networks:
   ticket-reservation:

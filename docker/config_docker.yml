@@ -21,3 +21,25 @@ TokenSignerPublicKeyPath: "./server_keys/auth_token.pub.pem"
 Prometheus:
   Enable: true
   MetricsHTTPPort: 24000
+
+RedisCache:
+  RedisMode: "normal"  # Redis Mode normal, sentinel (if using sentinel, RedisHost, RedisPort config will be ignored. Using SentinelsAddrs config instead)
+  # config for normal mode
+  RedisHost: redis
+  RedisPort: 6379
+  # config for sentinel mode
+  Sentinel:
+    MasterName: "redis-cluster"
+    Addrs:
+      - 10.9.1.11:6379
+      - 10.9.1.12:6379
+      - 10.9.1.13:6379
+  # both modes config
+  RedisDB: 1
+  MaxRetries: 30
+  MinRetryBackoffSeconds: 1
+  MaxRetryBackoffSeconds: 120
+  DialTimeoutSeconds: 1
+  WriteTimeoutSeconds: 1
+  PoolTimeoutSeconds: 30
+  RedisConnectionTimeout: 5

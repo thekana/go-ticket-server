@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -155,19 +156,7 @@ func New(logger log.Logger) (app *App, err error) {
 			m: make(map[int]int),
 		},
 	}
-	// Query events and put in EventQuotaMap
-	//fmt.Println("Loading event quotas to memory")
-	events, err := app.DB.ViewAllEvents(false, 0)
-	if checkPostgresErrorCode(err, pgerrcode.UndefinedTable) {
-		//fmt.Println("Retrying")
-		events, err = app.DB.ViewAllEvents(false, 0)
-	}
-	if events != nil {
-		for _, e := range events {
-			app.My.EventQuotaMap.Set(e.EventID, e.RemainingQuota)
-		}
-	}
-	//fmt.Println("Loaded event quotas to memory")
+
 	return app, err
 }
 
@@ -268,6 +257,10 @@ func (app *App) WorkerPerformBatchTask() {
 		returnChan = append(returnChan, item.c)
 	}
 	results, err := app.DB.MakeReservationBatch(jobs, deductQuotaMap)
+	for err != nil && checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
+		fmt.Printf("HELLO MAN\n")
+		results, err = app.DB.MakeReservationBatch(jobs, deductQuotaMap)
+	}
 	if err != nil {
 		for _, c := range returnChan {
 			c <- ReservationQueueResult{
@@ -276,7 +269,7 @@ func (app *App) WorkerPerformBatchTask() {
 			}
 		}
 	}
-	for i := 0; i < len(returnChan); i++ {
+	for i := 0; i < len(results); i++ {
 		returnChan[i] <- ReservationQueueResult{
 			ticket: results[i],
 			err:    nil,
