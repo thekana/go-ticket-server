@@ -18,6 +18,7 @@ import (
 	"ticket-reservation/db"
 	"ticket-reservation/db/model"
 	"ticket-reservation/log"
+	"ticket-reservation/redis_cache"
 	"ticket-reservation/utils"
 	"time"
 )
@@ -54,6 +55,7 @@ type App struct {
 	TokenSignerPrivateKey *rsa.PrivateKey
 	TokenSignerPublicKey  *rsa.PublicKey
 	DB                    db.DB
+	RedisCache            redis_cache.Cache
 	My                    *MyStruct
 }
 
@@ -130,6 +132,16 @@ func New(logger log.Logger) (app *App, err error) {
 	}
 
 	app.DB, err = db.New(dbConfig, logger)
+	if err != nil {
+		return nil, err
+	}
+
+	redisCacheConfig, err := redis_cache.InitConfig()
+	if err != nil {
+		return nil, err
+	}
+
+	app.RedisCache, err = redis_cache.New(redisCacheConfig, logger)
 	if err != nil {
 		return nil, err
 	}
@@ -248,6 +260,9 @@ func (app *App) WorkerPerformBatchTask() {
 
 func (app *App) Close() error {
 	if err := app.DB.Close(); err != nil {
+		return err
+	}
+	if err := app.RedisCache.Close(); err != nil {
 		return err
 	}
 	return nil
