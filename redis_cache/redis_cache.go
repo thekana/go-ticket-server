@@ -3,6 +3,8 @@ package redis_cache
 import (
 	"context"
 	"github.com/go-redis/redis/v8"
+	"github.com/go-redsync/redsync/v4"
+	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
 	"github.com/pkg/errors"
 	"ticket-reservation/log"
 	"time"
@@ -10,13 +12,19 @@ import (
 
 type Cache interface {
 	CacheEvent
+	GetLockInstance() *redsync.Redsync
 	Close() error
 }
 
+func (r *RedisCache) GetLockInstance() *redsync.Redsync {
+	return r.DistributedLock
+}
+
 type RedisCache struct {
-	logger log.Logger
-	Config *Config
-	Redis  *redis.Client
+	logger          log.Logger
+	Config          *Config
+	Redis           *redis.Client
+	DistributedLock *redsync.Redsync
 }
 
 func New(config *Config, logger log.Logger) (*RedisCache, error) {
@@ -34,6 +42,9 @@ func New(config *Config, logger log.Logger) (*RedisCache, error) {
 	})
 	ctxRedis, cancelRedis := context.WithTimeout(context.Background(), config.RedisConnectionTimeout*time.Second)
 	defer cancelRedis()
+
+	pool := goredis.NewPool(redisClient)
+	rs := redsync.New(pool)
 
 	cliCh := make(chan string)
 	errCh := make(chan error)
@@ -56,8 +67,9 @@ func New(config *Config, logger log.Logger) (*RedisCache, error) {
 			logger: logger.WithFields(log.Fields{
 				"module": "redis_cache",
 			}),
-			Redis:  redisClient,
-			Config: config,
+			Redis:           redisClient,
+			Config:          config,
+			DistributedLock: rs,
 		}, nil
 	case errMsg := <-errCh:
 		return nil, errors.New("Cannot connect to redis : " + errMsg.Error())

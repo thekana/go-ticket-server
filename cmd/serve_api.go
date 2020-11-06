@@ -65,7 +65,7 @@ var serveAPICmd = &cobra.Command{
 		}
 
 		go app.SpinWorker()
-		defer app.My.Timer.Stop()
+		defer app.My.ClearBatchTicker.Stop()
 
 		httpAPI, err := http_api.New(app)
 		if err != nil {

@@ -14,6 +14,7 @@ type DBEventInterface interface {
 	ViewAllEvents(isOrganizer bool, orgID int) ([]*model.EventDetail, error)
 	EditEvent(eventID int, newName string, newQuota int, applicantID int) (*model.EventDetail, error)
 	DeleteEvent(eventId int, applicantID int, admin bool) (string, error)
+	RefreshEventQuotas() error
 }
 
 func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) (int, error) {
@@ -154,4 +155,39 @@ func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) 
 		return "", errors.Wrap(err, "Unable to commit a transaction")
 	}
 	return fmt.Sprintf("Event id %d was deleted by user %d", eventId, applicantID), nil
+}
+func (pgdb *PostgresqlDB) RefreshEventQuotas() error {
+	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
+		IsoLevel: pgx.RepeatableRead,
+	})
+	if err != nil {
+		return errors.Wrap(err, "Unable to make a transaction")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			_ = tx.Rollback(context.Background())
+		} else if err != nil {
+			_ = tx.Rollback(context.Background())
+		}
+	}()
+	sql := "select event_id, sum(quota) from reservations group by event_id"
+	rows, err := pgdb.DB.Query(context.Background(), sql)
+	defer rows.Close()
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var eventID int
+		var quotaBought int
+		err = rows.Scan(&eventID, &quotaBought)
+		if err != nil {
+			return err
+		}
+		_, _ = pgdb.DB.Exec(context.Background(), "update events set remaining_quota = quota - $1 where id = $2", quotaBought, eventID)
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return errors.Wrap(err, "Unable to commit a transaction")
+	}
+	return nil
 }

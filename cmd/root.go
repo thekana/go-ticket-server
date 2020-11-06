@@ -13,7 +13,7 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:   "ticket-reservation",
-	Short: "Ticker Reservation",
+	Short: "ClearBatchTicker Reservation",
 	Run: func(cmd *cobra.Command, args []string) {
 		cmd.Usage()
 	},

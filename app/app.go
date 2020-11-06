@@ -2,6 +2,7 @@ package app
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -41,11 +42,12 @@ func (r *RWMap) Set(key int, item int) {
 }
 
 type MyStruct struct {
-	QueueChan     chan *ReservationQueueElem
-	Signal        chan struct{}
-	Timer         *time.Ticker
-	EventQuotaMap *RWMap
-	Batch         chan *ReservationQueueElem
+	QueueChan           chan *ReservationQueueElem
+	Signal              chan struct{}
+	ClearBatchTicker    *time.Ticker
+	UpdateDBEventTicker *time.Ticker
+	EventQuotaMap       *RWMap
+	Batch               chan *ReservationQueueElem
 }
 
 type App struct {
@@ -146,10 +148,11 @@ func New(logger log.Logger) (app *App, err error) {
 	}
 
 	app.My = &MyStruct{
-		QueueChan: make(chan *ReservationQueueElem, BatchSize),
-		Batch:     make(chan *ReservationQueueElem, BatchSize),
-		Signal:    make(chan struct{}),
-		Timer:     time.NewTicker(TickTime),
+		QueueChan:           make(chan *ReservationQueueElem, BatchSize),
+		Batch:               make(chan *ReservationQueueElem, BatchSize),
+		Signal:              make(chan struct{}),
+		ClearBatchTicker:    time.NewTicker(TickTime),
+		UpdateDBEventTicker: time.NewTicker(time.Second * 30),
 		EventQuotaMap: &RWMap{
 			m: make(map[int]int),
 		},
@@ -162,7 +165,7 @@ func (app *App) SpinWorker() {
 	go app.AddTasks()
 	for {
 		select {
-		case <-app.My.Timer.C:
+		case <-app.My.ClearBatchTicker.C:
 			// fmt.Println(app.My.EventQuotaMap)
 			// Waiting for a signal from ticker
 			app.WorkerPerformBatchTask()
@@ -170,8 +173,20 @@ func (app *App) SpinWorker() {
 			// fmt.Print(Full)
 			// Waiting for a signal from AddTasks()
 			app.WorkerPerformBatchTask()
+		case <-app.My.UpdateDBEventTicker.C:
+			go app.QueryWorker()
 		}
 	}
+}
+
+func (app *App) QueryWorker() {
+	mutex := app.RedisCache.GetLockInstance().NewMutex("refresh-quotas-lock")
+	if err := mutex.Lock(); err != nil {
+		fmt.Println("Too bad! Refresh next time")
+		return
+	}
+	_ = app.DB.RefreshEventQuotas()
+	mutex.Unlock()
 }
 
 // To optimize performance we must update DB in batches
