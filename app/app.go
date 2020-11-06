@@ -2,13 +2,11 @@ package app
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	entranslations "github.com/go-playground/validator/v10/translations/en"
 	"github.com/jackc/pgconn"
-	"github.com/jackc/pgerrcode"
 	"github.com/pkg/errors"
 	"io/ioutil"
 	"net/http"
@@ -257,10 +255,6 @@ func (app *App) WorkerPerformBatchTask() {
 		returnChan = append(returnChan, item.c)
 	}
 	results, err := app.DB.MakeReservationBatch(jobs, deductQuotaMap)
-	for err != nil && checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
-		fmt.Printf("HELLO MAN\n")
-		results, err = app.DB.MakeReservationBatch(jobs, deductQuotaMap)
-	}
 	if err != nil {
 		for _, c := range returnChan {
 			c <- ReservationQueueResult{
@@ -268,8 +262,12 @@ func (app *App) WorkerPerformBatchTask() {
 				err:    err,
 			}
 		}
+		for _, j := range jobs {
+			_ = app.RedisCache.IncEventQuota(j.EventID, j.Amount)
+		}
+		return
 	}
-	for i := 0; i < len(results); i++ {
+	for i := 0; i < len(returnChan); i++ {
 		returnChan[i] <- ReservationQueueResult{
 			ticket: results[i],
 			err:    nil,
