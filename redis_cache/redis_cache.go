@@ -3,14 +3,13 @@ package redis_cache
 import (
 	"context"
 	"github.com/go-redis/redis/v8"
-	"github.com/go-redsync/redsync/v4"
-	"github.com/go-redsync/redsync/v4/redis/goredis/v8"
 	"github.com/pkg/errors"
 	"ticket-reservation/log"
 	"time"
 )
 
 type Cache interface {
+	CacheEvent
 	Close() error
 }
 
@@ -18,7 +17,6 @@ type RedisCache struct {
 	logger log.Logger
 	Config *Config
 	Redis  *redis.Client
-	Locker *redsync.Redsync
 }
 
 func New(config *Config, logger log.Logger) (*RedisCache, error) {
@@ -36,9 +34,6 @@ func New(config *Config, logger log.Logger) (*RedisCache, error) {
 	})
 	ctxRedis, cancelRedis := context.WithTimeout(context.Background(), config.RedisConnectionTimeout*time.Second)
 	defer cancelRedis()
-
-	pool := goredis.NewPool(redisClient)
-	rs := redsync.New(pool)
 
 	cliCh := make(chan string)
 	errCh := make(chan error)
@@ -63,7 +58,6 @@ func New(config *Config, logger log.Logger) (*RedisCache, error) {
 			}),
 			Redis:  redisClient,
 			Config: config,
-			Locker: rs,
 		}, nil
 	case errMsg := <-errCh:
 		return nil, errors.New("Cannot connect to redis : " + errMsg.Error())
