@@ -4,3 +4,5 @@ docker exec -i ticket_reservation_postgres psql -U postgres -c "drop database if
 docker exec -i ticket_reservation_postgres psql -U postgres -c "create database ticket_reservation"
 
 go run main.go migrate-db
+
+docker exec -it ticket_reservation_redis redis-cli flushall

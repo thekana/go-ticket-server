@@ -86,6 +86,7 @@ P.S. Need tokens because my implementation uses jwtclaims to get user data 🤣
 |  1 Memory only| 9307 | 85.97   | 300800   |
 | 2 Postgres only (with retry) | 713 | 513.71 |10302.21  |
 | 3 Postgres with batch jobs in memory| 4992 | 161.47 | 119737.6  |
+| 4 Postgres + Redis| 2958 | 265.96 | 62724  |
 
 ## Docker useful commands
 1. `docker build -t ticket_reservation_server .`

@@ -190,33 +190,59 @@ func (app *App) SpinWorker() {
 // To optimize performance we must update DB in batches
 func (app *App) AddTasks() {
 	for task := range app.My.QueueChan {
-		quota, found := app.My.EventQuotaMap.Get(task.EventID)
-		if !found {
+		// check if in cache
+		found, err := app.RedisCache.GetEventQuota(task.EventID)
+		if err != nil {
 			task.c <- ReservationQueueResult{
 				ticket: nil,
-				err: &customError.UserError{
-					Code:           70,
-					Message:        "Event not found",
-					HTTPStatusCode: http.StatusNotFound,
+				err: &customError.InternalError{
+					Code:    0,
+					Message: "Redis error",
 				},
 			}
 			// Return early and skip this one
 			continue
 		}
-		newQuota := quota - task.Amount
-		if newQuota < 0 {
+		if found == -1 {
+			// Not in cache we fetch from DB
+			thisEvent, err := app.DB.ViewEventDetail(task.EventID)
+			if err != nil {
+				task.c <- ReservationQueueResult{
+					ticket: nil,
+					err: &customError.UserError{
+						Code:           70,
+						Message:        "Event not found",
+						HTTPStatusCode: http.StatusNotFound,
+					},
+				}
+				continue
+			}
+			// Put in cache
+			err = app.RedisCache.SetEventQuota(thisEvent.EventID, thisEvent.RemainingQuota)
+			if err != nil {
+				task.c <- ReservationQueueResult{
+					ticket: nil,
+					err: &customError.InternalError{
+						Code:    0,
+						Message: "Redis error",
+					},
+				}
+				// Return early and skip this one
+				continue
+			}
+		}
+		err = app.RedisCache.DecEventQuota(task.EventID, task.Amount)
+		if err != nil {
 			task.c <- ReservationQueueResult{
 				ticket: nil,
 				err: &customError.UserError{
 					Code:           10,
-					Message:        "Not Enough Quota",
+					Message:        err.Error(),
 					HTTPStatusCode: http.StatusBadRequest,
 				},
 			}
-			// Return early and skip this one
 			continue
 		}
-		app.My.EventQuotaMap.Set(task.EventID, newQuota)
 		app.My.Batch <- task
 		// When len channel is over a certain amount
 		// Send a signal to perform task
