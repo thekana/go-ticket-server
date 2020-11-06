@@ -4,6 +4,7 @@ import (
 	"crypto/rsa"
 	"ticket-reservation/db"
 	log "ticket-reservation/log"
+	"ticket-reservation/redis_cache"
 )
 
 type Context struct {
@@ -14,6 +15,7 @@ type Context struct {
 	TokenSignerPublicKey  *rsa.PublicKey
 	DB                    db.DB
 	My                    *MyStruct
+	RedisCache            redis_cache.Cache
 }
 
 func (app *App) NewContext() *Context {
@@ -24,6 +26,7 @@ func (app *App) NewContext() *Context {
 		TokenSignerPublicKey:  app.TokenSignerPublicKey,
 		DB:                    app.DB,
 		My:                    app.My,
+		RedisCache:            app.RedisCache,
 	}
 }
 

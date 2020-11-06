@@ -15,7 +15,7 @@ else
   echo "SKIP BUILDING"
 fi
 
-ssh -i $1 $2 'rm -rf server'
+ssh -i $1 $2 'sudo rm -rf server'
 echo "COPYING IMAGE TO AWS"
 sh copy-image.sh $1 $2
 echo "COPYING DEPENDENCIES TO AWS"

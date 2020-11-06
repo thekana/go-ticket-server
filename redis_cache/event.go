@@ -12,6 +12,7 @@ type CacheEvent interface {
 	IncEventQuota(refID int, val int) error
 	DecEventQuota(refID int, val int) error
 	SetEventQuota(refID int, val int) error
+	SetNXEventQuota(refID int, val int) error
 }
 
 func (r *RedisCache) GetEventQuota(refID int) (int, error) {
@@ -50,6 +51,18 @@ func (r *RedisCache) SetEventQuota(refID int, val int) error {
 	setCmd := r.Redis.Set(context.Background(), key, val, 0)
 	if err := setCmd.Err(); err != nil {
 		return errors.Wrap(err, "Unable to set event quota")
+	}
+	return nil
+}
+
+func (r *RedisCache) SetNXEventQuota(refID int, val int) error {
+	key := "event-" + strconv.Itoa(refID)
+	setNXCmd := r.Redis.SetNX(context.Background(), key, val, 0)
+	if err := setNXCmd.Err(); err != nil {
+		return errors.Wrap(err, "Unable to set event quota")
+	}
+	if set := setNXCmd.Val(); !set {
+		return errors.New("Already set")
 	}
 	return nil
 }

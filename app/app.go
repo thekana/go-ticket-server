@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
-	"sync"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db"
 	"ticket-reservation/db/model"
@@ -23,30 +22,11 @@ import (
 	"time"
 )
 
-type RWMap struct {
-	sync.RWMutex
-	m map[int]int
-}
-
-func (r *RWMap) Get(key int) (int, bool) {
-	r.RLock()
-	defer r.RUnlock()
-	item, found := r.m[key]
-	return item, found
-}
-
-func (r *RWMap) Set(key int, item int) {
-	r.Lock()
-	defer r.Unlock()
-	r.m[key] = item
-}
-
 type MyStruct struct {
 	QueueChan           chan *ReservationQueueElem
 	Signal              chan struct{}
 	ClearBatchTicker    *time.Ticker
 	UpdateDBEventTicker *time.Ticker
-	EventQuotaMap       *RWMap
 	Batch               chan *ReservationQueueElem
 }
 
@@ -61,17 +41,8 @@ type App struct {
 }
 
 const (
-	BatchSize int    = 50
-	TickTime         = time.Millisecond * 100
-	Full      string = `
- _______  __   __  ___      ___     
-|       ||  | |  ||   |    |   |    
-|    ___||  | |  ||   |    |   |    
-|   |___ |  |_|  ||   |    |   |    
-|    ___||       ||   |___ |   |___ 
-|   |    |       ||       ||       |
-|___|    |_______||_______||_______|
-`
+	BatchSize int = 50
+	TickTime      = time.Millisecond * 100
 )
 
 var (
@@ -153,9 +124,6 @@ func New(logger log.Logger) (app *App, err error) {
 		Signal:              make(chan struct{}),
 		ClearBatchTicker:    time.NewTicker(TickTime),
 		UpdateDBEventTicker: time.NewTicker(time.Second * 30),
-		EventQuotaMap: &RWMap{
-			m: make(map[int]int),
-		},
 	}
 
 	return app, err
@@ -166,13 +134,11 @@ func (app *App) SpinWorker() {
 	for {
 		select {
 		case <-app.My.ClearBatchTicker.C:
-			// fmt.Println(app.My.EventQuotaMap)
 			// Waiting for a signal from ticker
-			app.WorkerPerformBatchTask()
+			go app.WorkerPerformBatchTask()
 		case <-app.My.Signal:
-			// fmt.Print(Full)
 			// Waiting for a signal from AddTasks()
-			app.WorkerPerformBatchTask()
+			go app.WorkerPerformBatchTask()
 		case <-app.My.UpdateDBEventTicker.C:
 			go app.QueryWorker()
 		}
@@ -220,7 +186,7 @@ func (app *App) AddTasks() {
 				continue
 			}
 			// Put in cache
-			err = app.RedisCache.SetEventQuota(thisEvent.EventID, thisEvent.RemainingQuota)
+			err = app.RedisCache.SetNXEventQuota(thisEvent.EventID, thisEvent.RemainingQuota)
 			if err != nil {
 				task.c <- ReservationQueueResult{
 					ticket: nil,

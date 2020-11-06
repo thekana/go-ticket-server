@@ -22,18 +22,12 @@ func init() {
 	})
 }
 
-var did bool
-
 func Populate(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
-	if did {
+	err := ctx.RedisCache.SetNXEventQuota(-1, -1)
+	if err != nil {
 		w.WriteHeader(http.StatusNotModified)
 	} else {
 		ctx.DB.PopulateSystem()
-		//ctx.My.EventQuotaMap.Set(1, 10000)
-		//ctx.My.EventQuotaMap.Set(2, 10000)
-		//ctx.My.EventQuotaMap.Set(3, 10000)
-		//ctx.My.EventQuotaMap.Set(4, 10000)
-		did = true
 		w.WriteHeader(http.StatusOK)
 	}
 	return nil

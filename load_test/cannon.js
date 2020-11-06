@@ -8,7 +8,7 @@ data = {
 }
 
 function start() {
-    const url = 'http://localhost:9092/api/v1/reservation/reserve'
+    const url = 'https://localhost/api/v1/reservation/reserve'
     //const url = 'https://www.ticketeer.ml/api/v1/reservation/reserve'
     autocannon({
         url: url,
