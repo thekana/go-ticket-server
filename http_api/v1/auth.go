@@ -11,6 +11,7 @@ import (
 	"ticket-reservation/db/model"
 	"ticket-reservation/http_api/response"
 	"ticket-reservation/http_api/routes"
+	"time"
 )
 
 // AuthRoutes is for adding auth api routes
@@ -45,10 +46,12 @@ func init() {
 func GetLoggedInInfo(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	var input app.GetLoggedInInfoParams
 	var err error
-	input.AuthToken, err = extractBearerToken(r.Header.Get("Authorization"))
+	cookie, err := r.Cookie("token")
 	if err != nil {
+		w.WriteHeader(http.StatusUnauthorized)
 		return err
 	}
+	input.AuthToken = cookie.Value
 	resData, err := ctx.GetLoggedInInfo(input)
 	if err != nil {
 		return err
@@ -103,6 +106,20 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	http.SetCookie(w, &http.Cookie{
+		Name:       "token",
+		Value:      resData.AuthToken,
+		Path:       "/",
+		Domain:     "",
+		Expires:    time.Now().Add(time.Hour * 10),
+		RawExpires: "",
+		MaxAge:     0,
+		Secure:     false,
+		HttpOnly:   true,
+		SameSite:   0,
+		Raw:        "",
+		Unparsed:   nil,
+	})
 	_, err = w.Write(data)
 	return err
 }

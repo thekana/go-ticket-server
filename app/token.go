@@ -25,7 +25,7 @@ func (ctx *Context) verifyToken(tokenString string) (bool, *jwt.MapClaims, error
 		if token != nil && token.Claims != nil {
 			if validationError, ok := token.Claims.Valid().(*jwt.ValidationError); ok {
 				if validationError.Errors == jwt.ValidationErrorExpired {
-					return false, nil, errors.New("Token is expired")
+					return false, nil, ErrTokenExpired
 				}
 			}
 		}

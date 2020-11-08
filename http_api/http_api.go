@@ -161,7 +161,7 @@ func (api *API) loggingMiddleware(next http.Handler) http.Handler {
 				w.Header()[k] = v
 			}
 			w.WriteHeader(rec.Code)
-			rec.Body.WriteTo(w)
+			_, _ = rec.Body.WriteTo(w)
 		} else {
 			next.ServeHTTP(w, r)
 		}
