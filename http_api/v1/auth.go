@@ -49,7 +49,11 @@ func GetLoggedInInfo(ctx *app.Context, w http.ResponseWriter, r *http.Request) e
 	cookie, err := r.Cookie("token")
 	if err != nil {
 		w.WriteHeader(http.StatusUnauthorized)
-		return err
+		return &customError.AuthorizationError{
+			Code:           7,
+			Message:        "Unauthorized",
+			HTTPStatusCode: http.StatusUnauthorized,
+		}
 	}
 	input.AuthToken = cookie.Value
 	resData, err := ctx.GetLoggedInInfo(input)
@@ -106,11 +110,13 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	http.SetCookie(w, &http.Cookie{
 		Name:       "token",
 		Value:      resData.AuthToken,
 		Path:       "/",
-		Domain:     "",
+		Domain:     "localhost:3000",
 		Expires:    time.Now().Add(time.Hour * 10),
 		RawExpires: "",
 		MaxAge:     0,
