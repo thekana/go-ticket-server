@@ -11,7 +11,6 @@ import (
 	"ticket-reservation/db/model"
 	"ticket-reservation/http_api/response"
 	"ticket-reservation/http_api/routes"
-	"time"
 )
 
 // AuthRoutes is for adding auth api routes
@@ -34,6 +33,12 @@ var AuthRoutes = routes.Routes{
 		Method:      "GET",
 		HandlerFunc: GetLoggedInInfo,
 	},
+	routes.Route{
+		Name:        "Logout",
+		Path:        "/logout",
+		Method:      "GET",
+		HandlerFunc: Logout,
+	},
 }
 
 func init() {
@@ -47,7 +52,7 @@ func GetLoggedInInfo(ctx *app.Context, w http.ResponseWriter, r *http.Request) e
 	var input app.GetLoggedInInfoParams
 	var err error
 	cookie, err := r.Cookie("token")
-	if err != nil {
+	if err != nil || cookie.Value == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return &customError.AuthorizationError{
 			Code:           7,
@@ -110,21 +115,14 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:3000")
 	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
 	http.SetCookie(w, &http.Cookie{
-		Name:       "token",
-		Value:      resData.AuthToken,
-		Path:       "/",
-		Domain:     "localhost:3000",
-		Expires:    time.Now().Add(time.Hour * 10),
-		RawExpires: "",
-		MaxAge:     0,
-		Secure:     false,
-		HttpOnly:   true,
-		SameSite:   0,
-		Raw:        "",
-		Unparsed:   nil,
+		Name:     "token",
+		Value:    resData.AuthToken,
+		Path:     "/",
+		Domain:   "",
+		MaxAge:   60 * 60,
+		HttpOnly: true,
 	})
 	_, err = w.Write(data)
 	return err
@@ -170,4 +168,19 @@ func Register(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 	_, err = w.Write(data)
 	w.WriteHeader(http.StatusCreated)
 	return err
+}
+
+func Logout(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
+
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization")
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		Domain:   "",
+		MaxAge:   0,
+		HttpOnly: true,
+	})
+	return nil
 }

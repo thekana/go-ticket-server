@@ -23,6 +23,8 @@ type LoginParams struct {
 type LoginResult struct {
 	AuthToken string `json:"authToken"`
 	UserID    int    `json:"userId"`
+	Username  string `json:"username"`
+	Role      string `json:"role"`
 }
 
 // GetLoggedInInfoParams is just here to check if token is working
@@ -71,7 +73,12 @@ func (ctx *Context) Login(params LoginParams) (*LoginResult, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &LoginResult{AuthToken: authToken, UserID: record.ID}, nil
+	return &LoginResult{
+		AuthToken: authToken,
+		UserID:    record.ID,
+		Username:  record.Username,
+		Role:      record.RoleList[0],
+	}, nil
 }
 
 // Register is a backend function
