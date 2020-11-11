@@ -179,7 +179,7 @@ func Logout(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 		Value:    "",
 		Path:     "/",
 		Domain:   "",
-		MaxAge:   0,
+		MaxAge:   -1,
 		HttpOnly: true,
 	})
 	return nil
