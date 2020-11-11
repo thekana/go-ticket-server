@@ -7,6 +7,9 @@ Back-end
 - [Main] Concurrency in practice (with and w/o database features help)
 - Pinpoint possible limitations in each implementation phase’s design
 - Design for optimal performance (where to store data and in what form it should be stored)
+## Notes:
+- Event (Edit/Delete) not synced with Redis yet [Need to reflect event changes in Redis]
+- Reservation (Cancel) not synced with Redis yet [Need to reclaim quotas after delete]
 
 ## Functional Requirements:
 1. User System Functionalities
