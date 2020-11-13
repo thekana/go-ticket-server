@@ -56,9 +56,9 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer})
 	if err != nil {
 		return nil, &customError.AuthorizationError{
-			Code:           20,
+			Code:           customError.Unauthorized,
 			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
+			HTTPStatusCode: http.StatusUnauthorized,
 		}
 	}
 	elem := &ReservationQueueElem{
@@ -77,19 +77,19 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 	if result.err != nil {
 		if checkPostgresErrorCode(result.err, pgerrcode.SerializationFailure) {
 			return nil, &customError.InternalError{
-				Code:    69,
-				Message: "CONCURRENT ERROR",
+				Code:    customError.ConcurrencyIssue,
+				Message: "DB Concurrency ERROR",
 			}
 		}
 		if checkPostgresErrorCode(result.err, pgerrcode.CheckViolation) {
 			return nil, &customError.UserError{
-				Code:           9,
+				Code:           customError.InsufficientQuota,
 				Message:        "Not enough quota",
 				HTTPStatusCode: http.StatusBadRequest,
 			}
 		}
 		return nil, &customError.UserError{
-			Code:           90,
+			Code:           customError.UnknownError,
 			Message:        result.err.Error(),
 			HTTPStatusCode: http.StatusBadRequest,
 		}
@@ -105,20 +105,15 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 		logger.Errorf("validateInput error : %s", err)
 		return nil, err
 	}
-	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Organizer, model.Admin})
+	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Admin})
 	if err != nil {
-		return nil, &customError.AuthorizationError{
-			Code:           13,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
-		}
+		return nil, err
 	}
 	tickets, err := ctx.DB.ViewAllReservations(authRes.User.ID)
 	if err != nil {
-		return nil, &customError.UserError{
-			Code:           12,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusBadRequest,
+		return nil, &customError.InternalError{
+			Code:    customError.DBError,
+			Message: err.Error(),
 		}
 	}
 	return &ViewReservationsResult{Tickets: tickets}, nil
@@ -134,28 +129,37 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer})
 
 	if err != nil {
-		return nil, &customError.AuthorizationError{
-			Code:           11,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
-		}
+		return nil, err
 	}
 	deletedTickets, quotaToReclaims, err := ctx.DB.CancelReservationBatch(authRes.User.ID, params.ReservationIDs)
 
 	if err != nil {
-		return nil, &customError.UserError{
-			Code:           10,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusBadRequest,
+		return nil, &customError.InternalError{
+			Code:    customError.DBError,
+			Message: err.Error(),
 		}
 	}
+	// At this point, all legit reservations are already deleted from DB
+	// There should not be any error when reclaiming quotas
+	// Keep retrying if there is error
 
 	for k, v := range quotaToReclaims {
-		ctx.RedisCache.IncEventQuota(k, v)
-	}
+		for {
+			err = ctx.RedisCache.IncEventQuota(k, v)
+			if err == nil {
+				break
+			}
+			logger.Errorf(err.Error())
+		}
 
-	err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)
-	logger.Errorf("Reclaim error : %s", err)
+	}
+	for {
+		err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)
+		if err == nil {
+			break
+		}
+		logger.Errorf(err.Error())
+	}
 
 	return &CancelReservationResults{DeletedTickets: deletedTickets}, nil
 }

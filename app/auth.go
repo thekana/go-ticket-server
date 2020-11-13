@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"net/http"
 	"strings"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
@@ -27,25 +28,25 @@ func roleNumToString(role model.Role) string {
 }
 
 func (ctx *Context) authorizeUser(authToken string, allowedRoles []model.Role) (*Auth, error) {
-	logger := ctx.getLogger()
+	// logger := ctx.getLogger()
 
 	tokenValid, jwtClaims, err := ctx.verifyToken(authToken)
 	if err != nil {
 		if err == ErrTokenExpired {
 			return nil, &customError.AuthorizationError{
 				Code:    customError.AuthTokenExpired,
-				Message: "token expired",
+				Message: "Token expired",
 			}
 		}
 		return nil, err
 	}
 
-	logger.Debugf("token valid: %t", tokenValid)
+	// logger.Debugf("token valid: %t", tokenValid)
 
 	if !tokenValid {
 		return nil, &customError.AuthorizationError{
 			Code:    customError.InvalidAuthToken,
-			Message: "invalid token",
+			Message: "Invalid token",
 		}
 	}
 	roleString := fmt.Sprint((*jwtClaims)["role"])
@@ -59,8 +60,9 @@ func (ctx *Context) authorizeUser(authToken string, allowedRoles []model.Role) (
 	}
 	if !permit {
 		return nil, &customError.AuthorizationError{
-			Code:    customError.Unauthorized,
-			Message: "unauthorized",
+			Code:           customError.NotEnoughPrivileges,
+			Message:        "Not allowed to perform action",
+			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
 	auth := &Auth{

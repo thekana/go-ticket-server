@@ -53,6 +53,8 @@ type DeleteEventResult struct {
 	Message string `json:"message"`
 }
 
+const RETRY = 20
+
 func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, error) {
 	logger := ctx.getLogger()
 
@@ -63,23 +65,20 @@ func (ctx *Context) CreateEvent(params CreateEventParams) (*CreateEventResult, e
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Organizer})
 	if err != nil {
-		return nil, &customError.AuthorizationError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
-		}
+		return nil, err
 	}
 	eventID, err := ctx.DB.CreateEvent(authRes.User.ID, params.Name, params.Quota)
 	if err != nil {
 		return nil, &customError.UserError{
-			Code:           0,
+			Code:           customError.BadInput,
 			Message:        err.Error(),
-			HTTPStatusCode: http.StatusNotFound,
+			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}
 	return &CreateEventResult{EventID: eventID}, nil
 }
 
+// GetEventDetail will check Redis first then DB
 func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, error) {
 	logger := ctx.getLogger()
 
@@ -89,16 +88,15 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 	}
 	_, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Admin, model.Organizer})
 	if err != nil {
-		return nil, &customError.AuthorizationError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
-		}
+		return nil, err
 	}
+	// TODO: Get data from cache first
 	eventDetail, err := ctx.DB.ViewEventDetail(params.EventID)
 	if err != nil {
+		// So many possible error, but high likely going to be
+		// event not found
 		return nil, &customError.UserError{
-			Code:           0,
+			Code:           customError.EventNotFound,
 			Message:        err.Error(),
 			HTTPStatusCode: http.StatusNotFound,
 		}
@@ -106,6 +104,7 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 	return &ViewEventResult{Event: eventDetail}, nil
 }
 
+// GetAllEventDetails will always query from DB
 func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEventResult, error) {
 	logger := ctx.getLogger()
 
@@ -116,19 +115,14 @@ func (ctx *Context) GetAllEventDetails(params ViewAllEventParams) (*ViewAllEvent
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Admin, model.Organizer})
 	if err != nil {
-		return nil, &customError.AuthorizationError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
-		}
+		return nil, err
 	}
 	var event []*model.EventDetail
 	event, err = ctx.DB.ViewAllEvents(authRes.IsOrganizer, authRes.User.ID)
 	if err != nil {
-		return nil, &customError.UserError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusBadRequest,
+		return nil, &customError.InternalError{
+			Code:    customError.DBError,
+			Message: err.Error(),
 		}
 	}
 	return &ViewAllEventResult{Events: event}, nil
@@ -144,15 +138,10 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Organizer})
 	if err != nil {
-		return nil, &customError.AuthorizationError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
-		}
+		return nil, err
 	}
 	var record *model.EventDetail
-	// Retry 20 times
-	for i := 0; i < 20; i++ {
+	for i := 0; i < RETRY; i++ {
 		record, err = ctx.DB.EditEvent(params.EventID, params.NewEventName, params.NewQuota, authRes.User.ID)
 		if err != nil {
 			if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
@@ -165,14 +154,14 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 	if err != nil {
 		if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
 			return nil, &customError.InternalError{
-				Code:    69,
-				Message: "CONCURRENT ERROR",
+				Code:    customError.ConcurrencyIssue,
+				Message: "CONCURRENCY ERROR",
 			}
+			logger.Errorf(err.Error())
 		}
-		return nil, &customError.UserError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusBadRequest,
+		return nil, &customError.InternalError{
+			Code:    customError.UnknownError,
+			Message: err.Error(),
 		}
 	}
 	// TODO: Change key in redis
@@ -189,15 +178,11 @@ func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, e
 
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Admin, model.Organizer})
 	if err != nil {
-		return nil, &customError.AuthorizationError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusForbidden,
-		}
+		return nil, err
 	}
-	// Retry 20 times
+
 	var result string
-	for i := 0; i < 20; i++ {
+	for i := 0; i < RETRY; i++ {
 		result, err = ctx.DB.DeleteEvent(params.EventID, authRes.User.ID, authRes.IsAdmin)
 		if err != nil {
 			if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
@@ -209,14 +194,14 @@ func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, e
 	if err != nil {
 		if checkPostgresErrorCode(err, pgerrcode.SerializationFailure) {
 			return nil, &customError.InternalError{
-				Code:    69,
-				Message: "CONCURRENT ERROR",
+				Code:    customError.ConcurrencyIssue,
+				Message: "CONCURRENCY ERROR",
 			}
+			logger.Errorf(err.Error())
 		}
-		return nil, &customError.UserError{
-			Code:           0,
-			Message:        err.Error(),
-			HTTPStatusCode: http.StatusBadRequest,
+		return nil, &customError.InternalError{
+			Code:    customError.UnknownError,
+			Message: err.Error(),
 		}
 	}
 	//TODO: Delete key from redis

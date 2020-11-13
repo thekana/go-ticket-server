@@ -29,7 +29,7 @@ func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) 
 }
 func (pgdb *PostgresqlDB) ViewEventDetail(eventId int) (*model.EventDetail, error) {
 	event := model.EventDetail{}
-	var sql string = `SELECT * from events where id=$1`
+	var sql = `SELECT * from events where id=$1`
 	err := pgdb.DB.QueryRow(context.Background(),
 		sql, eventId).Scan(&event.EventID,
 		&event.EventName,
@@ -38,7 +38,7 @@ func (pgdb *PostgresqlDB) ViewEventDetail(eventId int) (*model.EventDetail, erro
 		&event.RemainingQuota, nil, nil)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, errors.New("event not found")
+			return nil, errors.New("Event not found")
 		}
 		return nil, err
 	}
@@ -87,11 +87,11 @@ func (pgdb *PostgresqlDB) EditEvent(eventID int, newName string, newQuota int, a
 			_ = tx.Rollback(context.Background())
 		}
 	}()
-	var sql string = `select quota, remaining_quota, owner from events where id=$1`
+	var sql = `select quota, remaining_quota, owner from events where id=$1`
 	err = tx.QueryRow(context.Background(), sql, eventID).Scan(&oldQuota, &oldRemainingQuota, &trueOwnerID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return nil, errors.New("event not found")
+			return nil, errors.New("Event not found")
 		}
 		return nil, err
 	}

@@ -2,7 +2,6 @@ package app
 
 import (
 	"crypto/rsa"
-	"fmt"
 	"github.com/go-playground/locales/en"
 	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
@@ -148,7 +147,7 @@ func (app *App) SpinWorker() {
 func (app *App) QueryWorker() {
 	mutex := app.RedisCache.GetLockInstance().NewMutex("refresh-quotas-lock")
 	if err := mutex.Lock(); err != nil {
-		fmt.Println("Too bad! Refresh next time")
+		app.Logger.Debugf("Too bad! Refresh next time")
 		return
 	}
 	_ = app.DB.RefreshEventQuotasFromEntryInReservationsTable()
@@ -163,10 +162,7 @@ func (app *App) AddTasks() {
 		if err != nil {
 			task.c <- ReservationQueueResult{
 				ticket: nil,
-				err: &customError.InternalError{
-					Code:    0,
-					Message: "Redis error",
-				},
+				err:    err,
 			}
 			// Return early and skip this one
 			continue
@@ -178,7 +174,7 @@ func (app *App) AddTasks() {
 				task.c <- ReservationQueueResult{
 					ticket: nil,
 					err: &customError.UserError{
-						Code:           70,
+						Code:           customError.EventNotFound,
 						Message:        "Event not found",
 						HTTPStatusCode: http.StatusNotFound,
 					},
@@ -190,10 +186,7 @@ func (app *App) AddTasks() {
 			if err != nil {
 				task.c <- ReservationQueueResult{
 					ticket: nil,
-					err: &customError.InternalError{
-						Code:    0,
-						Message: "Redis error",
-					},
+					err:    err,
 				}
 				// Return early and skip this one
 				continue
@@ -203,11 +196,7 @@ func (app *App) AddTasks() {
 		if err != nil {
 			task.c <- ReservationQueueResult{
 				ticket: nil,
-				err: &customError.UserError{
-					Code:           10,
-					Message:        err.Error(),
-					HTTPStatusCode: http.StatusBadRequest,
-				},
+				err:    err,
 			}
 			continue
 		}

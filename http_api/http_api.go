@@ -253,7 +253,11 @@ func (api *API) handler(f func(*app.Context, http.ResponseWriter, *http.Request)
 					Message: aerr.Message,
 				})
 				if err == nil {
-					w.WriteHeader(http.StatusUnauthorized)
+					if aerr.HTTPStatusCode == 0 {
+						w.WriteHeader(http.StatusUnauthorized)
+					} else {
+						w.WriteHeader(aerr.HTTPStatusCode)
+					}
 					_, err = w.Write(data)
 				}
 				if err != nil {

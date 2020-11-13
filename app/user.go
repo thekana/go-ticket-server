@@ -1,6 +1,8 @@
 package app
 
 import (
+	"net/http"
+	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db/model"
 )
 
@@ -48,7 +50,10 @@ func (ctx *Context) GetLoggedInInfo(params GetLoggedInInfoParams) (*GetLoggedInI
 
 	_, claims, err := ctx.verifyToken(params.AuthToken)
 	if err != nil {
-		return nil, err
+		return nil, &customError.ValidationError{
+			Code:    customError.InvalidAuthToken,
+			Message: err.Error(),
+		}
 	}
 	return &GetLoggedInInfoResult{
 		Data: claims,
@@ -71,7 +76,10 @@ func (ctx *Context) Login(params LoginParams) (*LoginResult, error) {
 	}
 	authToken, err := ctx.createToken(record.Username, record.ID, record.RoleList)
 	if err != nil {
-		return nil, err
+		return nil, &customError.InternalError{
+			Code:    customError.UnknownError,
+			Message: "Cannot generate token",
+		}
 	}
 	return &LoginResult{
 		AuthToken: authToken,
@@ -91,7 +99,11 @@ func (ctx *Context) Register(params RegisterParams, role model.Role) (*RegisterR
 	}
 	userId, err := ctx.DB.CreateUser(params.Username, role)
 	if err != nil {
-		return nil, err
+		return nil, &customError.UserError{
+			Code:           customError.DuplicateUsername,
+			Message:        err.Error(),
+			HTTPStatusCode: http.StatusBadRequest,
+		}
 	}
 	return &RegisterResult{ID: userId}, nil
 }
