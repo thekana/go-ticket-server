@@ -122,7 +122,7 @@ func (pgdb *PostgresqlDB) EditEvent(eventID int, newName string, newQuota int, a
 }
 func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) (string, error) {
 	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
-		IsoLevel: pgx.RepeatableRead,
+		IsoLevel: pgx.Serializable,
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "Unable to make a transaction")

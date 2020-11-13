@@ -41,10 +41,7 @@ func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest,
 		}
 		results = append(results, &data)
 	}
-	// Update batch into events FIXME:
-	//for k, v := range remainingQuotaMap {
-	//	_, err = tx.Exec(context.Background(), `UPDATE events SET remaining_quota=remaining_quota-$1 WHERE id=$2`, v, k)
-	//}
+
 	err = tx.Commit(context.Background())
 	if err != nil {
 		return nil, errors.Wrap(err, "Unable to commit a transaction")

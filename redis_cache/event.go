@@ -16,6 +16,7 @@ type CacheEvent interface {
 	DecEventQuota(refID int, val int) error
 	SetEventQuota(refID int, val int) error
 	SetNXEventQuota(refID int, val int) error
+	DelEventQuota(refID int) error
 }
 
 func (r *RedisCache) GetEventQuota(refID int) (int, error) {
@@ -67,7 +68,6 @@ func (r *RedisCache) SetEventQuota(refID int, val int) error {
 	}
 	return nil
 }
-
 func (r *RedisCache) SetNXEventQuota(refID int, val int) error {
 	key := strconv.Itoa(refID)
 	setNXCmd := r.Redis.SetNX(context.Background(), key, val, 0)
@@ -81,6 +81,16 @@ func (r *RedisCache) SetNXEventQuota(refID int, val int) error {
 		return &customError.InternalError{
 			Code:    customError.RedisError,
 			Message: "Already set",
+		}
+	}
+	return nil
+}
+func (r *RedisCache) DelEventQuota(refID int) error {
+	cmd := r.Redis.Del(context.Background(), strconv.Itoa(refID))
+	if err := cmd.Err(); err != nil {
+		return &customError.InternalError{
+			Code:    customError.RedisError,
+			Message: "Unable to delete quota in cache",
 		}
 	}
 	return nil
