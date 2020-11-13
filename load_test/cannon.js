@@ -1,6 +1,6 @@
 const autocannon = require('autocannon')
 data = {
-    custoken1:  "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDQ2OTExMjYsImlhdCI6MTYwNDY3MzEyNiwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.sddzRZCeg1o9RvDOwHBGmn5TpElfE5GFzM6u_yyhbfsE0nJHhkr4lmDiQ94mgpI_HdgEoEo6wCcxRWpyO12tOicrXQ0bENnivw6kOMGuOxGegOL5tZ4iFq3D7q5x949as2CfDMe1croH2uF2ACxRXFILRPXbal2BY_R1iB6beNibS-3Q98z7TrP4SKZsKg7s78zOkPeylp3kUf-9jlXzzfplHCvPKS3B5hL1RTr-mNa3lHwkCpEIMsAb83JtQ4ZYvW1sz5SelH6iiZQ0xJ_sBMqhkN0aynDDYxnBbjrAKyZ5-wBrD5QOs8SN3-ZV_hxV-RSUNljDi-JxXREdZWEwaQ",
+    custoken1: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDUyNzQ4NjUsImlhdCI6MTYwNTI1Njg2NSwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.rvolSiccDfC4zZgFYZcrNy-iM1lR8bO_KDw4EwsadONd1lwk6aclMele7ibPDq7Z49agKeVlJiH8QJkSMWtfewLGba_YQ2JuUKp4S9rqQdufp8irEbm-Xo49qztkQnGYptQuAzKouKgRGWyxQvmrwGd8KQuFDPaoJvA6rDoc1pUZsU8YjKiK-DPvT9kgeXCbrcJWLnbNHw74xGB1GUX3uJ1y7bNA8kH6ExMFVctd9owHfEHtdVU2zxNKvrubzl_OvCozwAwq2wV1GCVDJB2I1Pzqo54MPZjX_-iJ_THhf_sAw8DfNc1IYIaFS3-Hi7AlVrdMfhQ5UOg3xaaeuEHSQA",
     eventID1: 1,
     eventID2: 2,
     eventID3: 3,
@@ -8,7 +8,7 @@ data = {
 }
 
 function start() {
-    const url = 'https://localhost/api/v1/reservation/reserve'
+    const url = 'http://localhost:9092/api/v1/reservation/reserve'
     //const url = 'https://www.ticketeer.ml/api/v1/reservation/reserve'
     autocannon({
         url: url,

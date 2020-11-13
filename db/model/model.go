@@ -22,19 +22,25 @@ type EventDetail struct {
 }
 
 type ReservationDetail struct {
-	ReservationID int
-	EventID       int
-	EventName     string
-	OrganizerID   int
-	UserID        int
-	Tickets       int
+	ReservationID int    `json:"reservationID"`
+	EventID       int    `json:"eventID"`
+	EventName     string `json:"eventName"`
+	OrganizerID   int    `json:"organizerID"`
+	UserID        int    `json:"userID"`
+	Tickets       int    `json:"tickets"`
 }
 
 type ReservationTicket struct {
-	ReservationID int
-	EventID       int
-	UserID        int
-	Tickets       int
+	ReservationID int `json:"reservationID"`
+	EventID       int `json:"eventID"`
+	UserID        int `json:"userID"`
+	Tickets       int `json:"tickets"`
+}
+
+type DeletedTicket struct {
+	ReservationID int `json:"reservationID"`
+	EventID       int `json:"eventID"`
+	Amount        int `json:"amount"`
 }
 
 type ReservationRequest struct {

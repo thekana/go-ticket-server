@@ -14,7 +14,8 @@ type DBEventInterface interface {
 	ViewAllEvents(isOrganizer bool, orgID int) ([]*model.EventDetail, error)
 	EditEvent(eventID int, newName string, newQuota int, applicantID int) (*model.EventDetail, error)
 	DeleteEvent(eventId int, applicantID int, admin bool) (string, error)
-	RefreshEventQuotas() error
+	RefreshEventQuotasFromEntryInReservationsTable() error
+	ReclaimEventQuotas(cancelledTickets map[int]int) error
 }
 
 func (pgdb *PostgresqlDB) CreateEvent(ownerId int, eventName string, quota int) (int, error) {
@@ -133,7 +134,7 @@ func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) 
 			_ = tx.Rollback(context.Background())
 		}
 	}()
-	var sql string = `select owner from events where id=$1`
+	var sql = `select owner from events where id=$1`
 	var trueOwnerID int
 	err = tx.QueryRow(context.Background(), sql, eventId).Scan(&trueOwnerID)
 	if err != nil {
@@ -156,7 +157,7 @@ func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) 
 	}
 	return fmt.Sprintf("Event id %d was deleted by user %d", eventId, applicantID), nil
 }
-func (pgdb *PostgresqlDB) RefreshEventQuotas() error {
+func (pgdb *PostgresqlDB) RefreshEventQuotasFromEntryInReservationsTable() error {
 	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead,
 	})
@@ -189,5 +190,37 @@ func (pgdb *PostgresqlDB) RefreshEventQuotas() error {
 	if err != nil {
 		return errors.Wrap(err, "Unable to commit a transaction")
 	}
+	return nil
+}
+func (pgdb *PostgresqlDB) ReclaimEventQuotas(cancelledTickets map[int]int) error {
+	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
+		IsoLevel: pgx.RepeatableRead,
+	})
+	if err != nil {
+		return errors.Wrap(err, "Unable to make a transaction")
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			_ = tx.Rollback(context.Background())
+		} else if err != nil {
+			_ = tx.Rollback(context.Background())
+		}
+	}()
+	var sql = `UPDATE events SET remaining_quota=remaining_quota+$1 WHERE id=$2`
+	for id, val := range cancelledTickets {
+		_, err := tx.Exec(context.Background(), sql, val, id)
+		if err != nil {
+			return err
+		}
+		//if row.RowsAffected() == 0 {
+		//	err = errors.New("Cannot reclaim quota")
+		//	return err
+		//}
+	}
+	err = tx.Commit(context.Background())
+	if err != nil {
+		return errors.Wrap(err, "Unable to commit a transaction")
+	}
+
 	return nil
 }

@@ -26,12 +26,12 @@ type ViewReservationsResult struct {
 }
 
 type CancelReservationParams struct {
-	AuthToken     string
-	ReservationID int `json:"reservationId" validate:"required"`
+	AuthToken      string
+	ReservationIDs []int `json:"reservationId" validate:"required"`
 }
 
-type CancelReservationResult struct {
-	Message string `json:"message"`
+type CancelReservationResults struct {
+	DeletedTickets []*model.DeletedTicket `json:"deleted" validate:"required"`
 }
 
 type ReservationQueueResult struct {
@@ -56,7 +56,7 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer})
 	if err != nil {
 		return nil, &customError.AuthorizationError{
-			Code:           0,
+			Code:           20,
 			Message:        err.Error(),
 			HTTPStatusCode: http.StatusForbidden,
 		}
@@ -89,7 +89,7 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 			}
 		}
 		return nil, &customError.UserError{
-			Code:           0,
+			Code:           90,
 			Message:        result.err.Error(),
 			HTTPStatusCode: http.StatusBadRequest,
 		}
@@ -108,7 +108,7 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 	authRes, err := ctx.authorizeUser(params.AuthToken, []model.Role{model.Customer, model.Organizer, model.Admin})
 	if err != nil {
 		return nil, &customError.AuthorizationError{
-			Code:           0,
+			Code:           13,
 			Message:        err.Error(),
 			HTTPStatusCode: http.StatusForbidden,
 		}
@@ -116,7 +116,7 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 	tickets, err := ctx.DB.ViewAllReservations(authRes.User.ID)
 	if err != nil {
 		return nil, &customError.UserError{
-			Code:           0,
+			Code:           12,
 			Message:        err.Error(),
 			HTTPStatusCode: http.StatusBadRequest,
 		}
@@ -124,7 +124,7 @@ func (ctx *Context) ViewReservations(params ViewReservationsParams) (*ViewReserv
 	return &ViewReservationsResult{Tickets: tickets}, nil
 }
 
-func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelReservationResult, error) {
+func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelReservationResults, error) {
 	logger := ctx.getLogger()
 
 	if err := validateInput(params); err != nil {
@@ -135,19 +135,27 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 
 	if err != nil {
 		return nil, &customError.AuthorizationError{
-			Code:           0,
+			Code:           11,
 			Message:        err.Error(),
 			HTTPStatusCode: http.StatusForbidden,
 		}
 	}
-	message, err := ctx.DB.CancelReservation(authRes.User.ID, params.ReservationID)
+	deletedTickets, quotaToReclaims, err := ctx.DB.CancelReservationBatch(authRes.User.ID, params.ReservationIDs)
 
 	if err != nil {
 		return nil, &customError.UserError{
-			Code:           0,
+			Code:           10,
 			Message:        err.Error(),
 			HTTPStatusCode: http.StatusBadRequest,
 		}
 	}
-	return &CancelReservationResult{Message: message}, nil
+
+	for k, v := range quotaToReclaims {
+		ctx.RedisCache.IncEventQuota(k, v)
+	}
+
+	err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)
+	logger.Errorf("Reclaim error : %s", err)
+
+	return &CancelReservationResults{DeletedTickets: deletedTickets}, nil
 }

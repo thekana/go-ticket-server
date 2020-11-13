@@ -151,8 +151,8 @@ func (app *App) QueryWorker() {
 		fmt.Println("Too bad! Refresh next time")
 		return
 	}
-	_ = app.DB.RefreshEventQuotas()
-	mutex.Unlock()
+	_ = app.DB.RefreshEventQuotasFromEntryInReservationsTable()
+	_, _ = mutex.Unlock()
 }
 
 // To optimize performance we must update DB in batches

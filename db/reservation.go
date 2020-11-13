@@ -2,7 +2,6 @@ package db
 
 import (
 	"context"
-	"fmt"
 	"github.com/jackc/pgx/v4"
 	"github.com/pkg/errors"
 	"ticket-reservation/db/model"
@@ -11,7 +10,7 @@ import (
 type DBReservationInterface interface {
 	MakeReservation(userID int, eventID int, amount int) (*model.ReservationTicket, error)
 	ViewAllReservations(userID int) ([]*model.ReservationDetail, error)
-	CancelReservation(userID int, reservationID int) (string, error)
+	CancelReservationBatch(userID int, reservationIDs []int) ([]*model.DeletedTicket, map[int]int, error)
 	MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationTicket, error)
 }
 
@@ -109,12 +108,12 @@ func (pgdb *PostgresqlDB) ViewAllReservations(userID int) ([]*model.ReservationD
 	return reservations, nil
 }
 
-func (pgdb *PostgresqlDB) CancelReservation(userID int, reservationID int) (string, error) {
+func (pgdb *PostgresqlDB) CancelReservationBatch(userID int, reservationIDs []int) ([]*model.DeletedTicket, map[int]int, error) {
 	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead,
 	})
 	if err != nil {
-		return "", errors.Wrap(err, "Unable to make a transaction")
+		return nil, nil, errors.Wrap(err, "Unable to make a transaction")
 	}
 	defer func() {
 		if r := recover(); r != nil {
@@ -123,29 +122,30 @@ func (pgdb *PostgresqlDB) CancelReservation(userID int, reservationID int) (stri
 			_ = tx.Rollback(context.Background())
 		}
 	}()
+	var sql = `DELETE from reservations where id=$1 and user_id=$2 RETURNING event_id, quota`
 	var deletedQuota int
 	var eventID int
-	var sql = `DELETE from reservations where id=$1 and user_id=$2 RETURNING event_id, quota`
-	err = tx.QueryRow(context.Background(), sql, reservationID, userID).Scan(&eventID, &deletedQuota)
-	if err != nil {
-		if err == pgx.ErrNoRows {
-			return "", errors.Wrap(err, "Invalid ID")
+	var deletedTickets []*model.DeletedTicket
+	var quotaToReclaim = make(map[int]int)
+	for _, id := range reservationIDs {
+		err = tx.QueryRow(context.Background(), sql, id, userID).Scan(&eventID, &deletedQuota)
+		if err != nil {
+			if err == pgx.ErrNoRows {
+				continue
+			}
+			return nil, nil, err
 		}
-		return "", err
-	}
-	// Add back quota
-	sql = `UPDATE events SET remaining_quota=remaining_quota+$1 WHERE id=$2`
-	row, err := tx.Exec(context.Background(), sql, deletedQuota, eventID)
-	if err != nil {
-		return "", err
-	}
-	if row.RowsAffected() == 0 {
-		err = errors.New("Cannot reclaim quota")
-		return "", err
+		deletedTickets = append(deletedTickets, &model.DeletedTicket{
+			ReservationID: id,
+			EventID:       eventID,
+			Amount:        deletedQuota,
+		})
+		quotaToReclaim[eventID] += deletedQuota
 	}
 	err = tx.Commit(context.Background())
 	if err != nil {
-		return "", errors.Wrap(err, "Unable to commit a transaction")
+		return nil, nil, errors.Wrap(err, "Unable to commit a transaction")
 	}
-	return fmt.Sprintf("Reservation %d Cancelled", reservationID), nil
+
+	return deletedTickets, quotaToReclaim, nil
 }
