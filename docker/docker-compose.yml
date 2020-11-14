@@ -57,10 +57,9 @@ services:
       - ticket-reservation
     restart: on-failure
   nginx:
-    image: nginx:latest
+    image: nginx:stable-alpine
     volumes:
       - ../nginx/nginx.conf:/etc/nginx/conf.d/default.conf
-      - ../nginx/digital_clock_web:/server/web
       - ../nginx/certificate.crt:/server/server.crt:ro
       - ../nginx/private.key:/server/server.key:ro
     ports:
