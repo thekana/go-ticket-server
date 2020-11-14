@@ -15,10 +15,11 @@ else
   echo "SKIP BUILDING"
 fi
 
-ssh -i $1 $2 'sudo rm -rf server'
+# Docker custom aliases
+ssh -i $1 $2 'sudo rm -rf server; dsa; drc; dri'
 echo "COPYING IMAGE TO AWS"
 sh copy-image.sh $1 $2
 echo "COPYING DEPENDENCIES TO AWS"
 sh copy-files.sh $1 $2
 echo "DOCKER-COMPOSE"
-ssh -i $1 $2 'cd server/docker; docker-compose down; docker-compose up --scale api=3 -d'
+ssh -i $1 $2 'cd server/docker; docker-compose up --scale api=3 -d'
