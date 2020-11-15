@@ -1,6 +1,6 @@
 const autocannon = require('autocannon')
 data = {
-    custoken1: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDUyNzQ4NjUsImlhdCI6MTYwNTI1Njg2NSwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.rvolSiccDfC4zZgFYZcrNy-iM1lR8bO_KDw4EwsadONd1lwk6aclMele7ibPDq7Z49agKeVlJiH8QJkSMWtfewLGba_YQ2JuUKp4S9rqQdufp8irEbm-Xo49qztkQnGYptQuAzKouKgRGWyxQvmrwGd8KQuFDPaoJvA6rDoc1pUZsU8YjKiK-DPvT9kgeXCbrcJWLnbNHw74xGB1GUX3uJ1y7bNA8kH6ExMFVctd9owHfEHtdVU2zxNKvrubzl_OvCozwAwq2wV1GCVDJB2I1Pzqo54MPZjX_-iJ_THhf_sAw8DfNc1IYIaFS3-Hi7AlVrdMfhQ5UOg3xaaeuEHSQA",
+    custoken1: "eyJhbGciOiJSUzUxMiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2MDU0Njg2ODQsImlhdCI6MTYwNTQ1MDY4NCwibmFtZSI6ImN1c3QxIiwicm9sZSI6WyJjdXN0b21lciJdLCJ1aWQiOjR9.Yu1LHqj65uhcku6UUg6At3N3mb4KUGh1sSa2Qpli5ykv54aHXCm9f6kYollPUfHqpqXQHKTJluXgt0LClOXJPBA1vL1zjEC1GlDsef48WekukwaQhov-8yGoQokc5wUw_cWNWYDE04DWBgwlXc6G1dPiwfcxgIxRgS7vM_Z38hK-b3OSfSiJxovSJhSyqShjOxMQtcT_yKa9SmC3E3021TPBC8odCacFHcAPJZagOZCNLYjCjeeT3atibf3oXPWPsiUrSEjXSz4FbW7wByC07B_X-Q1cWyMMk-xsieRLO6SwfpQq7j24GvoAb-HnJ0ZShdhVoN3VgTb-PVMv0_G0WA",
     eventID1: 1,
     eventID2: 2,
     eventID3: 3,
@@ -8,8 +8,8 @@ data = {
 }
 
 function start() {
-    const url = 'http://localhost:9092/api/v1/reservation/reserve'
-    //const url = 'https://www.ticketeer.ml/api/v1/reservation/reserve'
+    //const url = 'http://localhost:9092/api/v1/reservation/reserve'
+    const url = 'https://www.ticketeer.ml/api/v1/reservation/reserve'
     autocannon({
         url: url,
         connections: 80, // matters a lot can't be more than a hundred and less than cut off amount

@@ -28,8 +28,8 @@ var AuthRoutes = routes.Routes{
 		HandlerFunc: Register,
 	},
 	routes.Route{
-		Name:        "Check",
-		Path:        "/check",
+		Name:        "Check Auth",
+		Path:        "/auth",
 		Method:      "GET",
 		HandlerFunc: GetLoggedInInfo,
 	},
@@ -55,7 +55,7 @@ func GetLoggedInInfo(ctx *app.Context, w http.ResponseWriter, r *http.Request) e
 	if err != nil || cookie.Value == "" {
 		w.WriteHeader(http.StatusUnauthorized)
 		return &customError.AuthorizationError{
-			Code:           7,
+			Code:           customError.Unauthorized,
 			Message:        "Unauthorized",
 			HTTPStatusCode: http.StatusUnauthorized,
 		}

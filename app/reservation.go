@@ -151,15 +151,16 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 			}
 			logger.Errorf(err.Error())
 		}
-
 	}
-	for {
-		err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)
-		if err == nil {
-			break
+	go func() {
+		for {
+			err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)
+			if err == nil {
+				break
+			}
+			logger.Errorf(err.Error())
 		}
-		logger.Errorf(err.Error())
-	}
+	}()
 
 	return &CancelReservationResults{DeletedTickets: deletedTickets}, nil
 }
