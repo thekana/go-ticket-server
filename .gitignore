@@ -1,3 +1,5 @@
 /.idea/*
-/load_test/node_modules/*
+/load_test/node_modules
+/docker/nginx/build/*
+!/docker/nginx/build/.gitkeep
 .DS_STORE
