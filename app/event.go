@@ -200,7 +200,7 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 			Message: err.Error(),
 		}
 	}
-	// TODO: Change key in redis
+
 	return &EditEventResult{EditedEvent: record}, nil
 }
 

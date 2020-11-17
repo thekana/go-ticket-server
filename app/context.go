@@ -3,7 +3,7 @@ package app
 import (
 	"crypto/rsa"
 	"ticket-reservation/db"
-	log "ticket-reservation/log"
+	"ticket-reservation/log"
 	"ticket-reservation/redis_cache"
 )
 
