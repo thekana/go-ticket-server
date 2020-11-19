@@ -38,7 +38,6 @@ type EditEventParams struct {
 	EventID      int    `json:"eventID" validate:"required"`
 	NewEventName string `json:"newEventName" validate:"required"`
 	NewQuota     int    `json:"newQuota" validate:"required"`
-	OldQuota     int    `json:"originalQuota" validate:"required"` // FIXME: This doesnt make sense
 }
 
 type EditEventResult struct {
@@ -152,29 +151,29 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 		return nil, err
 	}
 
-	currentQuota, _ := ctx.RedisCache.GetEventQuota(params.EventID)
-	if currentQuota >= 0 {
-		// Quota found, perform check here
-		sold := params.OldQuota - currentQuota
-		if params.NewQuota < sold {
-			return nil, &customError.UserError{
-				Code:           customError.BadInput,
-				Message:        "New quota must be more than sold tickets",
-				HTTPStatusCode: http.StatusBadRequest,
-			}
-		}
-		// Everything checks out
-		// Update redis so users can continue to send requests
-		diff := params.NewQuota - params.OldQuota
-		if diff >= 0 {
-			err = ctx.RedisCache.IncEventQuota(params.EventID, diff)
-		} else {
-			err = ctx.RedisCache.DecEventQuota(params.EventID, -diff)
-		}
-		if err != nil {
-			return nil, err
-		}
-	}
+	//currentQuota, _ := ctx.RedisCache.GetEventQuota(params.EventID)
+	//if currentQuota >= 0 {
+	//	// Quota found, perform check here
+	//	sold := params.OldQuota - currentQuota
+	//	if params.NewQuota < sold {
+	//		return nil, &customError.UserError{
+	//			Code:           customError.BadInput,
+	//			Message:        "New quota must be more than sold tickets",
+	//			HTTPStatusCode: http.StatusBadRequest,
+	//		}
+	//	}
+	//	// Everything checks out
+	//	// Update redis so users can continue to send requests
+	//	diff := params.NewQuota - params.OldQuota
+	//	if diff >= 0 {
+	//		err = ctx.RedisCache.IncEventQuota(params.EventID, diff)
+	//	} else {
+	//		err = ctx.RedisCache.DecEventQuota(params.EventID, -diff)
+	//	}
+	//	if err != nil {
+	//		return nil, err
+	//	}
+	//}
 
 	var record *model.EventDetail
 	for i := 0; i < RETRY; i++ {
@@ -195,12 +194,21 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 				Message: "CONCURRENCY ERROR",
 			}
 		}
+		if err.Error() == ("New quota must be more than sold tickets") {
+			return nil, &customError.UserError{
+				Code:           customError.BadInput,
+				Message:        err.Error(),
+				HTTPStatusCode: http.StatusBadRequest,
+			}
+
+		}
 		return nil, &customError.InternalError{
 			Code:    customError.UnknownError,
 			Message: err.Error(),
 		}
 	}
-
+	// Update Redis cache
+	_ = ctx.RedisCache.SetEventQuota(record.EventID, record.RemainingQuota)
 	return &EditEventResult{EditedEvent: record}, nil
 }
 
