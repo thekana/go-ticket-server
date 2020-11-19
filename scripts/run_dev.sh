@@ -14,6 +14,7 @@ docker exec -i ticket_reservation_postgres psql -U postgres -c "drop database if
 docker exec -i ticket_reservation_postgres psql -U postgres -c "create database ticket_reservation"
 
 go run main.go migrate-db
+go run main.go create-admin-user -username admin
 go run -tags debug main.go serve-api &
 
 wait
