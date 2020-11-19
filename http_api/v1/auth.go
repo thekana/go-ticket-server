@@ -121,7 +121,7 @@ func Login(ctx *app.Context, w http.ResponseWriter, r *http.Request) error {
 		Value:    resData.AuthToken,
 		Path:     "/",
 		Domain:   "",
-		MaxAge:   60 * 60,
+		MaxAge:   60 * 60, //1 hour
 		HttpOnly: true,
 	})
 	_, err = w.Write(data)
