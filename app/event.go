@@ -38,7 +38,7 @@ type EditEventParams struct {
 	EventID      int    `json:"eventID" validate:"required"`
 	NewEventName string `json:"newEventName" validate:"required"`
 	NewQuota     int    `json:"newQuota" validate:"required"`
-	OldQuota     int    `json:"originalQuota" validate:"required"` // Need this for redis logic
+	OldQuota     int    `json:"originalQuota" validate:"required"` // FIXME: This doesnt make sense
 }
 
 type EditEventResult struct {
@@ -107,7 +107,7 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 	redisQuota, _ := ctx.RedisCache.GetEventQuota(params.EventID)
 	if redisQuota == -1 {
 		// not in redis so put it in
-		ctx.RedisCache.SetNXEventQuota(params.EventID, eventDetail.RemainingQuota)
+		_ = ctx.RedisCache.SetNXEventQuota(params.EventID, eventDetail.RemainingQuota)
 	} else {
 		eventDetail.RemainingQuota = redisQuota
 	}

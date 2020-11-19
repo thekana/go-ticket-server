@@ -47,6 +47,6 @@ var createAdminUserCmd = &cobra.Command{
 
 func init() {
 	createAdminUserCmd.Flags().StringP("username", "u", "", "Username")
-	createAdminUserCmd.MarkFlagRequired("username")
+	_ = createAdminUserCmd.MarkFlagRequired("username")
 	rootCmd.AddCommand(createAdminUserCmd)
 }
