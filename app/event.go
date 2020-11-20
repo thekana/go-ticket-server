@@ -104,13 +104,14 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 	// Also get latest data from Redis and return
 	// Ignore redis error here
 	redisQuota, _ := ctx.RedisCache.GetEventQuota(params.EventID)
+
 	if redisQuota == -1 {
 		// not in redis so put it in
 		_ = ctx.RedisCache.SetNXEventQuota(params.EventID, eventDetail.RemainingQuota)
 	} else {
 		eventDetail.RemainingQuota = redisQuota
 	}
-
+	logger.Debugf("Weird %v+", eventDetail)
 	return &ViewEventResult{Event: eventDetail}, nil
 }
 
@@ -194,17 +195,30 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 				Message: "CONCURRENCY ERROR",
 			}
 		}
-		if err.Error() == ("New quota must be more than sold tickets") {
+		switch err.Error() {
+		case "New quota must be more than sold tickets":
 			return nil, &customError.UserError{
 				Code:           customError.BadInput,
 				Message:        err.Error(),
 				HTTPStatusCode: http.StatusBadRequest,
 			}
-
-		}
-		return nil, &customError.InternalError{
-			Code:    customError.UnknownError,
-			Message: err.Error(),
+		case "Not Authorized":
+			return nil, &customError.UserError{
+				Code:           customError.Unauthorized,
+				Message:        err.Error(),
+				HTTPStatusCode: http.StatusUnauthorized,
+			}
+		case "Event not found":
+			return nil, &customError.UserError{
+				Code:           customError.EventNotFound,
+				Message:        err.Error(),
+				HTTPStatusCode: http.StatusNotFound,
+			}
+		default:
+			return nil, &customError.InternalError{
+				Code:    customError.UnknownError,
+				Message: err.Error(),
+			}
 		}
 	}
 	// Update Redis cache

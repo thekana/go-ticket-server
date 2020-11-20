@@ -12,6 +12,7 @@ killgroup(){
 
 docker exec -i ticket_reservation_postgres psql -U postgres -c "drop database if exists ticket_reservation" &&
 docker exec -i ticket_reservation_postgres psql -U postgres -c "create database ticket_reservation"
+docker exec -i ticket_reservation_redis redis-cli FLUSHALL
 
 go run main.go migrate-db
 go run main.go create-admin-user --username admin
