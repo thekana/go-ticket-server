@@ -139,7 +139,7 @@ func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) 
 	err = tx.QueryRow(context.Background(), sql, eventId).Scan(&trueOwnerID)
 	if err != nil {
 		if err == pgx.ErrNoRows {
-			return "", errors.New("event not found")
+			return "", errors.New("Event not found")
 		}
 		return "", err
 	}

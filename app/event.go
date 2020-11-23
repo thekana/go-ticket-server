@@ -203,10 +203,10 @@ func (ctx *Context) EditEventDetail(params EditEventParams) (*EditEventResult, e
 				HTTPStatusCode: http.StatusBadRequest,
 			}
 		case "Not Authorized":
-			return nil, &customError.UserError{
-				Code:           customError.Unauthorized,
-				Message:        err.Error(),
-				HTTPStatusCode: http.StatusUnauthorized,
+			return nil, &customError.AuthorizationError{
+				Code:           customError.NotEnoughPrivileges,
+				Message:        "Not allowed to perform action",
+				HTTPStatusCode: http.StatusForbidden,
 			}
 		case "Event not found":
 			return nil, &customError.UserError{
@@ -257,9 +257,24 @@ func (ctx *Context) DeleteEvent(params DeleteEventParams) (*DeleteEventResult, e
 				Message: "CONCURRENCY ERROR",
 			}
 		}
-		return nil, &customError.InternalError{
-			Code:    customError.UnknownError,
-			Message: err.Error(),
+		switch err.Error() {
+		case "Not Authorized":
+			return nil, &customError.AuthorizationError{
+				Code:           customError.NotEnoughPrivileges,
+				Message:        "Not allowed to perform action",
+				HTTPStatusCode: http.StatusForbidden,
+			}
+		case "Event not found":
+			return nil, &customError.UserError{
+				Code:           customError.EventNotFound,
+				Message:        err.Error(),
+				HTTPStatusCode: http.StatusNotFound,
+			}
+		default:
+			return nil, &customError.InternalError{
+				Code:    customError.UnknownError,
+				Message: err.Error(),
+			}
 		}
 	}
 	return &DeleteEventResult{Message: result}, nil
