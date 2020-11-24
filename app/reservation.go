@@ -157,6 +157,7 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 			logger.Errorf(err.Error())
 		}
 	}
+	// FIXME:
 	go func() {
 		for {
 			err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)

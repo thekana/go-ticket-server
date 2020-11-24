@@ -111,7 +111,7 @@ func (ctx *Context) GetEventDetail(params ViewEventParams) (*ViewEventResult, er
 	} else {
 		eventDetail.RemainingQuota = redisQuota
 	}
-	logger.Debugf("Weird %v+", eventDetail)
+
 	return &ViewEventResult{Event: eventDetail}, nil
 }
 

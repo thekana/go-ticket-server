@@ -139,7 +139,7 @@ func (app *App) SpinWorker() {
 			// Waiting for a signal from AddTasks()
 			go app.WorkerPerformBatchTask()
 		case <-app.My.UpdateDBEventTicker.C:
-			go app.QueryWorker()
+			//go app.QueryWorker()
 		}
 	}
 }
