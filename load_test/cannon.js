@@ -8,8 +8,9 @@ data = {
 }
 
 function start() {
-    const url = 'http://localhost:9092/api/v1/reservation/reserve'
+    //const url = 'http://localhost:9092/api/v1/reservation/reserve'
     //const url = 'https://www.ticketeer.ml/api/v1/reservation/reserve'
+    const url = 'https://www.goticket.tk/api/v1/reservation/reserve'
     autocannon({
         url: url,
         connections: 80, // matters a lot can't be more than a hundred and less than cut off amount
