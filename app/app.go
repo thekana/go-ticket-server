@@ -12,6 +12,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 	customError "ticket-reservation/custom_error"
 	"ticket-reservation/db"
 	"ticket-reservation/db/model"
@@ -27,6 +28,7 @@ type MyStruct struct {
 	ClearBatchTicker    *time.Ticker
 	UpdateDBEventTicker *time.Ticker
 	Batch               chan *ReservationQueueElem
+	UpdateLock          sync.Mutex
 }
 
 type App struct {
@@ -139,19 +141,15 @@ func (app *App) SpinWorker() {
 			// Waiting for a signal from AddTasks()
 			go app.WorkerPerformBatchTask()
 		case <-app.My.UpdateDBEventTicker.C:
-			//go app.QueryWorker()
+			go app.QueryWorker()
 		}
 	}
 }
 
 func (app *App) QueryWorker() {
-	mutex := app.RedisCache.GetLockInstance().NewMutex("refresh-quotas-lock")
-	if err := mutex.Lock(); err != nil {
-		app.Logger.Debugf("Too bad! Refresh next time")
-		return
-	}
+	app.My.UpdateLock.Lock()
 	_ = app.DB.RefreshEventQuotasFromEntryInReservationsTable()
-	_, _ = mutex.Unlock()
+	app.My.UpdateLock.Unlock()
 }
 
 // To optimize performance we must update DB in batches

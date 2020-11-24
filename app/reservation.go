@@ -159,6 +159,9 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 	}
 	// FIXME:
 	go func() {
+		ctx.My.UpdateLock.Lock()
+		defer ctx.My.UpdateLock.Unlock()
+		_ = ctx.DB.RefreshEventQuotasFromEntryInReservationsTable()
 		for {
 			err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)
 			if err == nil {

@@ -39,11 +39,11 @@ func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest,
 			return nil, err
 		}
 		results = append(results, &data)
-		_, err = tx.Exec(context.Background(),
-			`UPDATE events SET remaining_quota=remaining_quota-$1 WHERE id=$2`, job.Amount, job.EventID)
-		if err != nil {
-			return nil, err
-		}
+		//_, err = tx.Exec(context.Background(),
+		//	`UPDATE events SET remaining_quota=remaining_quota-$1 WHERE id=$2`, job.Amount, job.EventID)
+		//if err != nil {
+		//	return nil, err
+		//}
 	}
 
 	err = tx.Commit(context.Background())
