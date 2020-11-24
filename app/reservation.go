@@ -75,6 +75,11 @@ func (ctx *Context) MakeReservation(params MakeReservationParams) (*MakeReservat
 		result = b
 	}
 	if result.err != nil {
+
+		if _, ok := result.err.(*customError.UserError); ok {
+			return nil, result.err
+		}
+
 		if checkPostgresErrorCode(result.err, pgerrcode.SerializationFailure) {
 			return nil, &customError.InternalError{
 				Code:    customError.ConcurrencyIssue,

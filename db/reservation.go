@@ -8,7 +8,6 @@ import (
 )
 
 type DBReservationInterface interface {
-	MakeReservation(userID int, eventID int, amount int) (*model.ReservationTicket, error)
 	ViewAllReservations(userID int) ([]*model.ReservationDetail, error)
 	CancelReservationBatch(userID int, reservationIDs []int) ([]*model.DeletedTicket, map[int]int, error)
 	MakeReservationBatch(jobs []*model.ReservationRequest, remainingQuotaMap map[int]int) ([]*model.ReservationTicket, error)
@@ -47,40 +46,6 @@ func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest,
 		return nil, errors.Wrap(err, "Unable to commit a transaction")
 	}
 	return results, nil
-}
-
-func (pgdb *PostgresqlDB) MakeReservation(userID int, eventID int, amount int) (*model.ReservationTicket, error) {
-	var res model.ReservationTicket
-	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
-		IsoLevel: pgx.RepeatableRead,
-	})
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to make a transaction")
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			_ = tx.Rollback(context.Background())
-		} else if err != nil {
-			_ = tx.Rollback(context.Background())
-		}
-	}()
-	// Insert new reservation
-	var sql = `INSERT INTO reservations (user_id,event_id,quota) VALUES ($1,$2,$3) RETURNING id,user_id,event_id,quota;`
-	err = tx.QueryRow(context.Background(), sql, userID, eventID, amount).Scan(&res.ReservationID, &res.UserID, &res.EventID, &res.Tickets)
-	if err != nil {
-		return nil, err
-	}
-	// Deduct quota
-	sql = `UPDATE events SET remaining_quota=remaining_quota-$1 WHERE id=$2 RETURNING name, owner`
-	_, err = tx.Exec(context.Background(), sql, amount, eventID)
-	if err != nil {
-		return nil, err
-	}
-	err = tx.Commit(context.Background())
-	if err != nil {
-		return nil, errors.Wrap(err, "Unable to commit a transaction")
-	}
-	return &res, nil
 }
 
 func (pgdb *PostgresqlDB) ViewAllReservations(userID int) ([]*model.ReservationDetail, error) {
