@@ -26,9 +26,9 @@ func (pgdb *PostgresqlDB) MakeReservationBatch(jobs []*model.ReservationRequest,
 	defer func() {
 		if r := recover(); r != nil {
 			_ = tx.Rollback(context.Background())
-		} else if err != nil {
-			_ = tx.Rollback(context.Background())
 		}
+		_ = tx.Rollback(context.Background())
+
 	}()
 	// Insert batch into reservations
 	for _, job := range jobs {
@@ -85,9 +85,9 @@ func (pgdb *PostgresqlDB) CancelReservationBatch(userID int, reservationIDs []in
 	defer func() {
 		if r := recover(); r != nil {
 			_ = tx.Rollback(context.Background())
-		} else if err != nil {
-			_ = tx.Rollback(context.Background())
 		}
+		_ = tx.Rollback(context.Background())
+
 	}()
 	var sql = `DELETE from reservations where id=$1 and user_id=$2 RETURNING event_id, quota`
 	var deletedQuota int

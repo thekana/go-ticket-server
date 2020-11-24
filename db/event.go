@@ -83,9 +83,8 @@ func (pgdb *PostgresqlDB) EditEvent(eventID int, newName string, newQuota int, a
 	defer func() {
 		if r := recover(); r != nil {
 			_ = tx.Rollback(context.Background())
-		} else if err != nil {
-			_ = tx.Rollback(context.Background())
 		}
+		_ = tx.Rollback(context.Background())
 	}()
 	var sql = `select quota, remaining_quota, owner from events where id=$1`
 	err = tx.QueryRow(context.Background(), sql, eventID).Scan(&oldQuota, &oldRemainingQuota, &trueOwnerID)
@@ -130,9 +129,9 @@ func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) 
 	defer func() {
 		if r := recover(); r != nil {
 			_ = tx.Rollback(context.Background())
-		} else if err != nil {
-			_ = tx.Rollback(context.Background())
 		}
+		_ = tx.Rollback(context.Background())
+
 	}()
 	var sql = `select owner from events where id=$1`
 	var trueOwnerID int
@@ -169,8 +168,6 @@ func (pgdb *PostgresqlDB) RefreshEventQuotasFromEntryInReservationsTable() error
 		pgdb.logger.Debugf("Refresh End")
 		if r := recover(); r != nil {
 			_ = tx.Rollback(context.Background())
-		} else if err != nil {
-			_ = tx.Rollback(context.Background())
 		}
 		_ = tx.Rollback(context.Background())
 	}()
@@ -204,8 +201,6 @@ func (pgdb *PostgresqlDB) ReclaimEventQuotas(cancelledTickets map[int]int) error
 	}
 	defer func() {
 		if r := recover(); r != nil {
-			_ = tx.Rollback(context.Background())
-		} else if err != nil {
 			_ = tx.Rollback(context.Background())
 		}
 		_ = tx.Rollback(context.Background())
