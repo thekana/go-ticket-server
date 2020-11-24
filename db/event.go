@@ -158,6 +158,7 @@ func (pgdb *PostgresqlDB) DeleteEvent(eventId int, applicantID int, admin bool) 
 	return fmt.Sprintf("Event id %d was deleted by user %d", eventId, applicantID), nil
 }
 func (pgdb *PostgresqlDB) RefreshEventQuotasFromEntryInReservationsTable() error {
+	pgdb.logger.Debugf("Refresh Start")
 	tx, err := pgdb.DB.BeginTx(context.Background(), pgx.TxOptions{
 		IsoLevel: pgx.RepeatableRead,
 	})
@@ -165,11 +166,13 @@ func (pgdb *PostgresqlDB) RefreshEventQuotasFromEntryInReservationsTable() error
 		return errors.Wrap(err, "Unable to make a transaction")
 	}
 	defer func() {
+		pgdb.logger.Debugf("Refresh End")
 		if r := recover(); r != nil {
 			_ = tx.Rollback(context.Background())
 		} else if err != nil {
 			_ = tx.Rollback(context.Background())
 		}
+		_ = tx.Rollback(context.Background())
 	}()
 	sql := "select event_id, sum(quota) from reservations group by event_id"
 	rows, err := pgdb.DB.Query(context.Background(), sql)
@@ -205,6 +208,7 @@ func (pgdb *PostgresqlDB) ReclaimEventQuotas(cancelledTickets map[int]int) error
 		} else if err != nil {
 			_ = tx.Rollback(context.Background())
 		}
+		_ = tx.Rollback(context.Background())
 	}()
 	var sql = `UPDATE events SET remaining_quota=remaining_quota+$1 WHERE id=$2`
 	for id, val := range cancelledTickets {

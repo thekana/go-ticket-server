@@ -136,6 +136,13 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 	if err != nil {
 		return nil, err
 	}
+
+	// Need to refresh quotas before deleting
+	ctx.My.UpdateLock.Lock()
+	defer ctx.My.UpdateLock.Unlock()
+	_ = ctx.DB.RefreshEventQuotasFromEntryInReservationsTable()
+
+	// Perform actual delete
 	deletedTickets, quotaToReclaims, err := ctx.DB.CancelReservationBatch(authRes.User.ID, params.ReservationIDs)
 
 	if err != nil {
@@ -157,11 +164,8 @@ func (ctx *Context) CancelReservation(params CancelReservationParams) (*CancelRe
 			logger.Errorf(err.Error())
 		}
 	}
-	// FIXME:
+	// Reclaim quota
 	go func() {
-		ctx.My.UpdateLock.Lock()
-		defer ctx.My.UpdateLock.Unlock()
-		_ = ctx.DB.RefreshEventQuotasFromEntryInReservationsTable()
 		for {
 			err = ctx.DB.ReclaimEventQuotas(quotaToReclaims)
 			if err == nil {
