@@ -16,7 +16,7 @@ else
 fi
 
 # Docker custom aliases
-ssh -i $1 $2 'sudo rm -rf server; docker stop $(docker ps -aq); docker rm $(docker ps -aq); docker rmi $(docker images -q)'
+ssh -i $1 $2 'sudo rm -rf server; docker stop $(docker ps -aq); docker rm $(docker ps -aq);'
 echo "COPYING IMAGE TO AWS"
 sh copy-image.sh $1 $2
 echo "COPYING DEPENDENCIES TO AWS"

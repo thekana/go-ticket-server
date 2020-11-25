@@ -26,7 +26,7 @@ func serveHTTPMetrics(ctx context.Context, logger log.Logger, port int) {
 	)
 
 	router := mux.NewRouter()
-	router.HandleFunc("/metrics", promhttp.Handler().ServeHTTP)
+	router.HandleFunc("/", promhttp.Handler().ServeHTTP)
 
 	s := &http.Server{
 		Addr:        fmt.Sprintf(":%d", port),
