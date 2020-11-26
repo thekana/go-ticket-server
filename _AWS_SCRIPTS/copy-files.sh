@@ -11,3 +11,4 @@ fi
 ssh -i $1 $2 'sudo rm -rf /server; mkdir -p server/docker; mkdir -p server/_dev_server_keys; mkdir -p server/postgres_data'
 scp -r -i $1 ../docker $2:~/server
 scp -i $1 -r ../_dev_server_keys/* $2:~/server/_dev_server_keys
+ssh -i $1 $2 'cp -r ~/build ~/server/docker/nginx'
