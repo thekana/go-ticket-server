@@ -16,9 +16,7 @@ func init() {
 					user_id                BIGINT,
 					event_id               BIGINT,
 					quota                  BIGINT NOT NULL,
----processed			   BOOLEAN DEFAULT FALSE,
 					created_at  		   TIMESTAMPTZ NOT NULL DEFAULT NOW()
----updated_at 			   TIMESTAMPTZ NOT NULL DEFAULT NOW()
 				);
 				ALTER TABLE reservations
 					ADD CONSTRAINT FK_reserved_by
