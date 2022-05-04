@@ -1,6 +1,6 @@
 # Event Ticket Reservation System
 
-Backend hosted at https://www.ticketeer.ml/api/v1 <br>Frontend hosted at www.ticketeer.ml
+~~Backend hosted at https://www.ticketeer.ml/api/v1 <br>Frontend hosted at www.ticketeer.ml~~
 
 ## Objectives:
 - [Main] Learn and familiarize with Go programming language
